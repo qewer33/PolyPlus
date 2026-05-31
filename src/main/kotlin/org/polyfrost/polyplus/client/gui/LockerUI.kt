@@ -1,4 +1,3 @@
-/*
 @file:Suppress("FunctionName")
 
 package org.polyfrost.polyplus.client.gui
@@ -62,4 +61,3 @@ private fun LockerPage(): Drawable {
         alignment = Align(padBetween = Vec2(13f, 0f), wrap = Align.Wrap.NEVER)
     ).named("Locker")
 }
-*/

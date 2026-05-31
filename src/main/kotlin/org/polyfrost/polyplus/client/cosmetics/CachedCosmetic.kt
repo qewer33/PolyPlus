@@ -15,7 +15,11 @@ sealed interface CachedCosmetic {
 
         override fun asResource(): Identifier? {
             if (location == null) {
-                val texture = DynamicTexture({ "polyplus:cape/${image.hashCode()}" }, image.toNativeImage())
+                val texture = DynamicTexture(
+                    //?if >= 1.21.5 {
+                     { "polyplus:cape/${image.hashCode()}" },
+                    //?}
+                    image.toNativeImage())
                 val id = Identifier.fromNamespaceAndPath(
                     PolyPlusConstants.ID,
                     "cape/${image.hashCode()}",

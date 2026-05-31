@@ -1,4 +1,3 @@
-/*
 package org.polyfrost.polyplus.client.gui
 
 import net.minecraft.client.Minecraft
@@ -53,6 +52,7 @@ object FullscreenBrowserUI {
 
     private fun createContents(polyUI: PolyUI): Drawable {
         val cartCount = State(3)
+        val searchQuery = State("")
         return Group(
             // Header
             Group(
@@ -82,9 +82,10 @@ object FullscreenBrowserUI {
                 Block(
                     Image("/assets/polyplus/ico/search.svg".image()).named("SearchIcon"),
                     TextInput(
+                        text = searchQuery,
                         placeholder = "polyplus.search.placeholder",
                         visibleSize = Vec2(210f, 12f)
-                    ).onChange { text: String ->
+                    ).onChange(searchQuery) {
                         // TODO: Filter cosmetics list based on search input
                         false
                     }.named("SearchInput"),
@@ -94,7 +95,7 @@ object FullscreenBrowserUI {
                 ).onClick {
                     polyUI.focus((this[1] as TextInput))
                 }.onRightClick {
-                    (this[1] as TextInput).text = ""
+                    searchQuery.value = ""
                 }.withBorder(1f) { page.border5 }.named("SearchField"),
 
                 size = Vec2(1482f, 36f),
@@ -140,4 +141,3 @@ object FullscreenBrowserUI {
         return this
     }
 }
-*/

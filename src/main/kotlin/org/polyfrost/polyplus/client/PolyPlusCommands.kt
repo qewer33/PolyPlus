@@ -6,7 +6,7 @@ import net.minecraft.client.Minecraft
 import net.minecraft.network.chat.Component
 import org.apache.logging.log4j.LogManager
 import org.polyfrost.polyplus.PolyPlusConstants
-// import org.polyfrost.polyplus.client.gui.FullscreenBrowserUI
+import org.polyfrost.polyplus.client.gui.FullscreenBrowserUI
 object PolyPlusCommands {
     private val LOGGER = LogManager.getLogger(PolyPlusConstants.NAME)
 
@@ -21,9 +21,9 @@ object PolyPlusCommands {
 
     private typealias commands =
             //? if >= 26.1 {
-            net.fabricmc.fabric.api.client.command.v2.ClientCommands
-            //?} else {
-            // net.fabricmc.fabric.api.client.command.v2.ClientCommandManager
+            /*net.fabricmc.fabric.api.client.command.v2.ClientCommands
+            *///?} else {
+             net.fabricmc.fabric.api.client.command.v2.ClientCommandManager
             //?}
 
     //? if fabric {
@@ -56,7 +56,7 @@ object PolyPlusCommands {
     //?}
 
     private fun openLocker() {
-        // val client = Minecraft.getInstance()
-        // client.execute { client.setScreen(FullscreenBrowserUI.create()) }
+        val client = Minecraft.getInstance()
+        client.execute { client.setScreen(FullscreenBrowserUI.create()) }
     }
 }

@@ -9,18 +9,18 @@ import org.polyfrost.oneconfig.api.config.v1.annotations.Switch
 import org.polyfrost.polyplus.BackendUrl
 import org.polyfrost.polyplus.PolyPlusConstants
 import org.polyfrost.polyplus.client.discord.DiscordPresence
-// import org.polyfrost.polyplus.client.gui.FullscreenBrowserUI
+import org.polyfrost.polyplus.client.gui.FullscreenBrowserUI
 import org.polyfrost.polyplus.client.network.websocket.PolyConnection
 
 object PolyPlusConfig : Config("${PolyPlusConstants.ID}.json", PolyPlusConstants.NAME, Category.OTHER) {
     @Transient
     private val LOGGER = LogManager.getLogger()
 
-    // @Button(title = "Open Locker", description = "Open the PolyPlus Locker UI")
-    // fun openLocker() {
-    //     val client = Minecraft.getInstance()
-    //     client.setScreen(FullscreenBrowserUI.create())
-    // }
+    @Button(title = "Open Locker", description = "Open the PolyPlus Locker UI")
+    fun openLocker() {
+        val client = Minecraft.getInstance()
+        client.setScreen(FullscreenBrowserUI.create())
+    }
 
     @JvmStatic @Switch(title = "Discord RPC")
     var isDiscordEnabled = true

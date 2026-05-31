@@ -1,4 +1,3 @@
-/*
 @file:Suppress("FunctionName")
 
 package org.polyfrost.polyplus.client.gui
@@ -6,6 +5,7 @@ package org.polyfrost.polyplus.client.gui
 import kotlinx.coroutines.future.asCompletableFuture
 import org.polyfrost.polyplus.client.network.http.PolyCosmetics
 import org.polyfrost.polyplus.client.network.http.responses.Cosmetic
+import org.polyfrost.polyplus.client.utils.ClientPlatform
 import org.polyfrost.polyui.PolyUI
 import org.polyfrost.polyui.color.rgba
 import org.polyfrost.polyui.component.Drawable
@@ -44,7 +44,9 @@ fun CosmeticList(polyUI: PolyUI, size: Vec2): Drawable {
         .asCompletableFuture()
         .thenAccept { result ->
             result.onSuccess { list ->
-                cosmetics.value = list.contents
+                ClientPlatform.runOnMain {
+                    cosmetics.value = list.contents
+                }
             }
         }
 
@@ -170,4 +172,3 @@ private fun CosmeticCard(cosmetic: Cosmetic): Drawable {
         radii = floatArrayOf(12f),
     ).named("CosmeticCard")
 }
-*/

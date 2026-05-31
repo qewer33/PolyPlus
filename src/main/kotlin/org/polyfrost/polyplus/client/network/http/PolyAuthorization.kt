@@ -77,7 +77,13 @@ object PolyAuthorization {
     private fun authorizeSessionService(serverId: String) {
         try {
             val client = Minecraft.getInstance()
-            client.services().sessionService.joinServer(
+            client.
+                //?if >= 1.21.10 {
+             services().sessionService
+            //?} else {
+                /*minecraftSessionService
+            *///?}
+                .joinServer(
                 ClientPlatform.localPlayerUuid(),
                 client.user.accessToken,
                 serverId,

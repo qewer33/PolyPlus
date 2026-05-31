@@ -81,10 +81,13 @@ dependencies {
     catalogBundle("fabric-api")?.let { implementation(it) { isTransitive = true } }
     catalogLib("fabric-loader")?.let { implementation(it) { isTransitive = true } }
 
+    /*
+
     implementation("org.polyfrost.oneconfig:$mcVersion-fabric:$oneconfigVersion")
     for (module in listOf("config", "config-impl", "internal", "ui", "events")) {
         implementation("org.polyfrost.oneconfig:$module:$oneconfigVersion")
     }
+    */
 
     implementation(libs.discord.game.sdk4j)
     implementation(libs.bundles.ktor.client)

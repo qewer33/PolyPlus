@@ -7,7 +7,7 @@ discord-game-sdk4j = "v0.5.5"
 mixin-extras = "0.5.0"
 mixin-squared = "0.3.7-beta.1"
 polymixin = "0.8.4+build.7"
-devauth = "1.2.1"
+devauth = "1.2.2"
 
 [libraries]
 kotlin-stdlib = { module = "org.jetbrains.kotlin:kotlin-stdlib", version.ref = "kotlin" }

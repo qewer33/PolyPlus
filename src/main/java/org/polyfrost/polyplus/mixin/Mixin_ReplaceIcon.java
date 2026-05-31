@@ -52,7 +52,13 @@ public class Mixin_ReplaceIcon {
 
 
             Minecraft.getInstance().execute(() -> {
-                GLFW.glfwSetWindowIcon(this.window.getWindow(), icons);
+                GLFW.glfwSetWindowIcon(this.window
+                        //?if >= 1.21.10 {
+                        .handle()
+                        //?} else {
+                         /*.getWindow()
+                        *///?}
+                        , icons);
 
                 icons.forEach(GLFWImage::free);
                 icons.free();
