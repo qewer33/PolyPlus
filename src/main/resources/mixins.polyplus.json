@@ -12,6 +12,18 @@
     "client.Mixin_AddCosmeticsPage",
     "client.Mixin_ReplaceCapeTexture",
     "client.Mixin_ReplaceOneConfigLogo"
+    //? if >= 1.21.1 {
+    ,
+    "polycosmetics.client.AbstractClientPlayerMixin",
+    "polycosmetics.client.AvatarRendererInitMixin",
+    "polycosmetics.client.LivingEntityRendererInvoker",
+    "polycosmetics.client.PlayerModelMixin"
+    //?}
+    //? if >= 1.21.4 {
+    ,
+    "polycosmetics.client.AvatarRenderStateMixin",
+    "polycosmetics.client.AvatarRendererMixin"
+    //?}
   ],
   "verbose": true
 }

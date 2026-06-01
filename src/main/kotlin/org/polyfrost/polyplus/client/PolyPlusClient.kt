@@ -22,6 +22,8 @@ import org.polyfrost.polyplus.client.network.http.PolyCosmetics
 import org.polyfrost.polyplus.client.network.websocket.PolyConnection
 import org.polyfrost.polyplus.client.network.websocket.ServerboundPacket
 import org.polyfrost.polyplus.client.utils.ClientPlatform
+//? if >= 1.21.1
+import org.polyfrost.polyplus.polycosmetics.client.PolyCosmeticsClient
 import org.polyfrost.polyplus.utils.EarlyInitializable
 import org.polyfrost.polyui.data.PolyImage
 import org.polyfrost.polyui.utils.image
@@ -50,6 +52,8 @@ object PolyPlusClient {
 
     fun initialize() {
         PolyPlusConfig.preload()
+        //? if >= 1.21.1
+        PolyCosmeticsClient().onInitializeClient()
 
         listOf(
             ApplyCosmetics

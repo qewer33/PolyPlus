@@ -1,0 +1,16 @@
+{
+    "format_version": "1.0.0",
+    "animations": {
+        "santaguise.appear": {
+            "rules": {
+                "allow_walking": true,
+                "allow_sprinting": true,
+                "allow_crouching": true,
+                "allow_falling": true,
+                "allow_elytra_flying": true,
+                "allow_swimming": true,
+                "allow_vanilla_pose": true
+            }
+        }
+    }
+}
