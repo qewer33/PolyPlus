@@ -13,10 +13,7 @@ import org.apache.logging.log4j.LogManager
 import org.polyfrost.oneconfig.api.event.v1.EventManager
 import org.polyfrost.polyplus.client.PolyPlusClient
 import org.polyfrost.polyplus.client.PolyPlusConfig
-import org.polyfrost.polyplus.client.cosmetics.CosmeticManager
-import org.polyfrost.polyplus.client.network.http.PolyCosmetics
 import org.polyfrost.polyplus.events.WebSocketMessage
-import java.util.UUID
 
 object PolyConnection {
     private val LOGGER = LogManager.getLogger()

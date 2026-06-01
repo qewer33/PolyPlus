@@ -14,22 +14,26 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import org.apache.logging.log4j.LogManager
 import org.polyfrost.polyplus.PolyPlusConstants
-import org.polyfrost.polyplus.client.cosmetics.ApplyCosmetics
-import org.polyfrost.polyplus.client.cosmetics.CosmeticManager
+import org.polyfrost.polyplus.client.cosmetics.CosmeticAssetCache
+import org.polyfrost.polyplus.client.cosmetics.CosmeticCatalog
+import org.polyfrost.polyplus.client.cosmetics.CosmeticSync
+//? if >= 1.21.1 {
+import org.polyfrost.polyplus.client.cosmetics.CosmeticService
+import org.polyfrost.polyplus.client.cosmetics.CosmeticsInitializer
+//?}
+import java.util.concurrent.atomic.AtomicBoolean
 import org.polyfrost.polyplus.client.discord.DiscordPresence
 import org.polyfrost.polyplus.client.network.http.PolyAuthorization
-import org.polyfrost.polyplus.client.network.http.PolyCosmetics
 import org.polyfrost.polyplus.client.network.websocket.PolyConnection
 import org.polyfrost.polyplus.client.network.websocket.ServerboundPacket
 import org.polyfrost.polyplus.client.utils.ClientPlatform
-//? if >= 1.21.1
-import org.polyfrost.polyplus.polycosmetics.client.PolyCosmeticsClient
 import org.polyfrost.polyplus.utils.EarlyInitializable
 import org.polyfrost.polyui.data.PolyImage
 import org.polyfrost.polyui.utils.image
 
 object PolyPlusClient {
     private val LOGGER = LogManager.getLogger(PolyPlusConstants.NAME)
+    private val cosmeticsRefreshInProgress = AtomicBoolean(false)
 
     @JvmField val SCOPE = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
@@ -52,51 +56,78 @@ object PolyPlusClient {
 
     fun initialize() {
         PolyPlusConfig.preload()
-        //? if >= 1.21.1
-        PolyCosmeticsClient().onInitializeClient()
 
-        listOf(
-            ApplyCosmetics
-        ).forEach(EarlyInitializable::earlyInitialize)
+        val earlyHooks: List<EarlyInitializable> = buildList {
+            //? if >= 1.21.1
+            add(CosmeticsInitializer)
+        }
+        earlyHooks.forEach(EarlyInitializable::earlyInitialize)
 
         DiscordPresence.initialize()
         PolyConnection.initialize {
             LOGGER.info("Connected to PolyPlus WebSocket server.")
 
-            // Request the local player's active cosmetics
             SCOPE.launch {
                 PolyConnection.sendPacket(ServerboundPacket.GetActiveCosmetics(ClientPlatform.localPlayerUuid().toString()))
+                if (net.minecraft.client.Minecraft.getInstance().player != null) {
+                    refreshCosmetics()
+                }
             }
         }
 
-        refresh()
+        refreshCosmetics()
         PolyPlusCommands.register()
     }
 
+    /** Full reset (auth, caches, API data). Used when the API URL changes or via `/polyplus refresh`. */
     fun refresh() {
         LOGGER.info("Refreshing PolyPlus Client...")
 
-        // Synchronously (yet asynchronously) refresh all API data in such a way that we authenticate first,
-        // then give ourselves time to cache cosmetics, then use said known cached cosmetics to update owned cosmetics.
         SCOPE.launch {
-            // Reset authentication
             runCatching { PolyAuthorization.reset() }
 
-            // Reset existing caches
-            runCatching { PolyCosmetics.reset() }
-            runCatching { CosmeticManager.reset() }
-
-            // Cache all available cosmetics
             runCatching {
-                val all = PolyCosmetics.getAll()
-                    .await()
-                    .getOrNull() ?: return@runCatching
-                CosmeticManager.putAll(all.contents)
+                CosmeticCatalog.reset()
+                CosmeticAssetCache.reset()
             }
 
-            // Update the local player's owned cosmetics
-            runCatching { PolyCosmetics.updateOwned() }
+            refreshCosmeticsInternal()
         }
+    }
+
+    /** Fetches catalog + player cosmetics and applies active loadout (no auth/cache wipe). */
+    fun refreshCosmetics() {
+        if (!cosmeticsRefreshInProgress.compareAndSet(false, true)) {
+            return
+        }
+
+        SCOPE.launch {
+            try {
+                refreshCosmeticsInternal()
+            } finally {
+                cosmeticsRefreshInProgress.set(false)
+            }
+        }
+    }
+
+    /** Loads cosmetics when the locker is empty but the player is in a world (e.g. command before join refresh finishes). */
+    fun refreshCosmeticsIfNeeded() {
+        if (CosmeticCatalog.ownedIds().isNotEmpty() || CosmeticCatalog.allDefinitions().isNotEmpty()) {
+            return
+        }
+        refreshCosmetics()
+    }
+
+    private suspend fun refreshCosmeticsInternal() {
+        LOGGER.info("Refreshing cosmetics catalog and player data...")
+
+        runCatching { CosmeticCatalog.refreshCatalog() }
+        runCatching { CosmeticCatalog.refreshPlayer() }
+        //? if >= 1.21.1 {
+        runCatching { CosmeticService.syncLocalActive() }
+        //?} else {
+        /*runCatching { CosmeticSync.applyLocalActiveFromCatalog() }*/
+        //?}
     }
 
     @JvmStatic

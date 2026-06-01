@@ -4,4 +4,10 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class CosmeticList(@SerialName("cosmetics") val contents: List<CosmeticDefinition>)
+enum class CosmeticType {
+    @SerialName("cape")
+    Cape,
+
+    @SerialName("emote")
+    Emote,
+}

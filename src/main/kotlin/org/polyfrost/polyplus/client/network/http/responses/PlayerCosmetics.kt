@@ -4,4 +4,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class PlayerCosmetics(val active: HashMap<String, Int?>, @SerialName("cosmetics") val owned: List<Cosmetic>)
+data class PlayerCosmetics(
+    val active: ActiveCosmetics,
+    @SerialName("cosmetics") val owned: List<CosmeticDefinition>,
+)

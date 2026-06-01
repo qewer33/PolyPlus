@@ -1,0 +1,45 @@
+//? if >= 1.21.1 {
+package org.polyfrost.polyplus.client.cosmetics.assets
+
+import java.io.ByteArrayInputStream
+import java.io.InputStream
+import java.nio.file.Files
+import java.nio.file.Path
+import java.util.zip.ZipInputStream
+import kotlin.io.path.createDirectories
+import kotlin.io.path.exists
+import kotlin.io.path.outputStream
+
+internal object AssetArchive {
+    fun materialize(bytes: ByteArray, targetDir: Path): Path {
+        targetDir.createDirectories()
+        if (isZip(bytes)) {
+            extractZip(bytes, targetDir)
+        } else {
+            val single = targetDir.resolve("asset.bin")
+            Files.write(single, bytes)
+        }
+        return targetDir
+    }
+
+    private fun isZip(bytes: ByteArray): Boolean =
+        bytes.size >= 2 && bytes[0] == 0x50.toByte() && bytes[1] == 0x4B.toByte()
+
+    private fun extractZip(bytes: ByteArray, targetDir: Path) {
+        ZipInputStream(ByteArrayInputStream(bytes)).use { zip ->
+            var entry = zip.nextEntry
+            while (entry != null) {
+                if (!entry.isDirectory) {
+                    val out = targetDir.resolve(entry.name)
+                    out.parent?.createDirectories()
+                    out.outputStream().use { zip.copyTo(it) }
+                }
+                zip.closeEntry()
+                entry = zip.nextEntry
+            }
+        }
+    }
+
+    fun readBytes(path: Path): ByteArray = Files.readAllBytes(path)
+}
+//?}

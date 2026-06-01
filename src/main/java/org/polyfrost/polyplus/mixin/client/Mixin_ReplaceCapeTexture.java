@@ -9,7 +9,7 @@ import net.minecraft.world.entity.player.PlayerSkin;
 /*import net.minecraft.client.resources.PlayerSkin;
 *///?}
 
-import org.polyfrost.polyplus.client.cosmetics.CosmeticManager;
+import org.polyfrost.polyplus.client.cosmetics.CosmeticAssetCache;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -27,7 +27,7 @@ public class Mixin_ReplaceCapeTexture {
         }
 
         //~ if >= 1.21.10 'getId' -> 'id'
-        var capeLocation = CosmeticManager.get(this.playerInfo.getProfile().id(), "cape");
+        var capeLocation = CosmeticAssetCache.getCapeTexture(this.playerInfo.getProfile().id());
         if (capeLocation == null) {
             return;
         }
