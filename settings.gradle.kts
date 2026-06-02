@@ -44,6 +44,8 @@ dependencyResolutionManagement {
         maven("https://maven.terraformersmc.com/")
         maven("https://maven.bawnorton.com/releases")
         maven("https://maven.parchmentmc.org")
+        maven("https://redirector.kotlinlang.org/maven/compose-dev")
+        google()
     }
 
     versionCatalogs {

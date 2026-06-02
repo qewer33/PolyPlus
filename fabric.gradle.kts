@@ -54,16 +54,21 @@ repositories {
     maven("https://maven.bawnorton.com/releases") {
         content { includeGroup("com.github.bawnorton.mixinsquared") }
     }
+    maven("https://redirector.kotlinlang.org/maven/compose-dev")
+    maven("https://nexus.prsm.wtf/repository/maven-public/maven-repo/releases/")
+    google()
 }
+
+val javaVersion = if (mcVersion.substringBefore('.').toIntOrNull()?.let { it >= 26 } == true) 25 else 21
 
 java {
     withSourcesJar()
-    sourceCompatibility = JavaVersion.VERSION_21
-    targetCompatibility = JavaVersion.VERSION_21
+    sourceCompatibility = JavaVersion.toVersion(javaVersion)
+    targetCompatibility = JavaVersion.toVersion(javaVersion)
 }
 
 configure<KotlinJvmExtension> {
-    jvmToolchain(21)
+    jvmToolchain(javaVersion)
 }
 
 val loomExt = extensions.getByName<LoomGradleExtensionAPI>("loom")
@@ -81,13 +86,10 @@ dependencies {
     catalogBundle("fabric-api")?.let { implementation(it) { isTransitive = true } }
     catalogLib("fabric-loader")?.let { implementation(it) { isTransitive = true } }
 
-    /*
-
     implementation("org.polyfrost.oneconfig:$mcVersion-fabric:$oneconfigVersion")
-    for (module in listOf("config", "config-impl", "internal", "ui", "events")) {
+    for (module in listOf("commands", "compose-bundle", "config", "config-impl", "hud", "poly-compose", "utils", "internal", "ui", "events")) {
         implementation("org.polyfrost.oneconfig:$module:$oneconfigVersion")
     }
-    */
 
     implementation(libs.discord.game.sdk4j)
     implementation(libs.bundles.ktor.client)

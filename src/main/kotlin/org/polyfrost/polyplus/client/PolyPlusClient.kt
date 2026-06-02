@@ -28,8 +28,6 @@ import org.polyfrost.polyplus.client.network.websocket.PolyConnection
 import org.polyfrost.polyplus.client.network.websocket.ServerboundPacket
 import org.polyfrost.polyplus.client.utils.ClientPlatform
 import org.polyfrost.polyplus.utils.EarlyInitializable
-import org.polyfrost.polyui.data.PolyImage
-import org.polyfrost.polyui.utils.image
 
 object PolyPlusClient {
     private val LOGGER = LogManager.getLogger(PolyPlusConstants.NAME)
@@ -131,11 +129,5 @@ object PolyPlusClient {
         //?} else {
         /*runCatching { CosmeticSync.applyLocalActiveFromCatalog() }*/
         //?}
-    }
-
-    @JvmStatic
-    fun getOneClientLogo(): PolyImage {
-        val image = "assets/polyplus/brand/oneclient.svg".image()
-        return image
     }
 }

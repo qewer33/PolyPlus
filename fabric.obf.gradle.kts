@@ -57,6 +57,9 @@ repositories {
     maven("https://maven.parchmentmc.org") {
         content { includeGroupAndSubgroups("org.parchmentmc") }
     }
+    maven("https://redirector.kotlinlang.org/maven/compose-dev")
+    maven("https://nexus.prsm.wtf/repository/maven-public/maven-repo/releases/")
+    google()
 }
 
 java {
@@ -92,7 +95,7 @@ dependencies {
     catalogLib("fabric-loader")?.let { modImplementation(it) { isTransitive = true } }
 
     modImplementation("org.polyfrost.oneconfig:$mcVersion-fabric:$oneconfigVersion")
-    for (module in listOf("config", "config-impl", "internal", "ui", "events")) {
+    for (module in listOf("commands", "compose-bundle", "config", "config-impl", "hud", "poly-compose", "utils", "internal", "ui", "events")) {
         implementation("org.polyfrost.oneconfig:$module:$oneconfigVersion")
     }
 
