@@ -12,6 +12,7 @@ pluginManagement {
     plugins {
         kotlin("jvm") version "2.3.0"
         kotlin("plugin.serialization") version "2.3.0"
+        kotlin("plugin.compose") version "2.3.0"
         id("net.fabricmc.fabric-loom") version "1.16-SNAPSHOT"
         id("net.fabricmc.fabric-loom-remap") version "1.16-SNAPSHOT"
         id("org.jetbrains.kotlinx.atomicfu") version "0.27.0"

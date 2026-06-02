@@ -10,6 +10,8 @@
     "Mixin_NoAI",
     "Mixin_ReplaceIcon",
     "client.Mixin_ReplaceCapeTexture",
+    "client.Mixin_OneConfigNavigationGraph",
+    "client.Mixin_OneConfigNavigationGroups",
     "client.Mixin_ThemeRegistryBranding"
     //? if >= 1.21.1 {
     ,

@@ -8,6 +8,7 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinJvmExtension
 plugins {
     java
     kotlin("jvm")
+    kotlin("plugin.compose")
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.atomicfu)
     id("net.fabricmc.fabric-loom-remap")
