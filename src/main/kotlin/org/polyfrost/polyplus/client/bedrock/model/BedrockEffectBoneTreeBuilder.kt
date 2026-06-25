@@ -19,17 +19,18 @@ internal class BedrockEffectBoneTreeBuilder(
 
     val bones: Map<String, BedrockBoneRenderer> get() = built
 
-    fun buildBone(name: String): BedrockBoneRenderer {
+    fun buildBone(name: String, parentLevel: Int = -1): BedrockBoneRenderer {
         built[name]?.let { return it }
 
         val bone = geometry.bones[name] ?: error("Missing bone $name")
-        val children = (childrenByParent[name] ?: emptyList()).map(::buildBone)
+        val effectiveLevel = bone.lightLevel.takeIf { it >= 0 } ?: parentLevel
+        val children = (childrenByParent[name] ?: emptyList()).map { buildBone(it, effectiveLevel) }
         val position = bone.initialEffectPosition(geometry.bones, playerGeometry)
         val rotation = bone.initialEffectRotation()
 
         return BedrockBoneRenderer(
             name = name,
-            mesh = BedrockMesh.fromBone(bone, textureWidth, textureHeight),
+            mesh = BedrockMesh.fromBone(bone, textureWidth, textureHeight, effectiveLevel),
             children = children,
             initialPosition = position,
             initialRotation = rotation,

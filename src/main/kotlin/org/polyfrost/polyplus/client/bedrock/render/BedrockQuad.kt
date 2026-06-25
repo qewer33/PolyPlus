@@ -22,6 +22,8 @@ data class BedrockQuad(
     val nx: Float,
     val ny: Float,
     val nz: Float,
+    /** Fake-glow light level 0..15, or -1 to render at the incoming ambient light. */
+    val lightLevel: Int = -1,
 ) {
     fun emit(
         pose: PoseStack.Pose,
@@ -37,10 +39,12 @@ data class BedrockQuad(
         val nyOut = normal.y
         val nzOut = normal.z
 
-        emitVertex(v0, matrix, buffer, color, overlayCoords, lightCoords, nxOut, nyOut, nzOut, scratch)
-        emitVertex(v1, matrix, buffer, color, overlayCoords, lightCoords, nxOut, nyOut, nzOut, scratch)
-        emitVertex(v2, matrix, buffer, color, overlayCoords, lightCoords, nxOut, nyOut, nzOut, scratch)
-        emitVertex(v3, matrix, buffer, color, overlayCoords, lightCoords, nxOut, nyOut, nzOut, scratch)
+        val light = if (lightLevel < 0) lightCoords else emissive(lightCoords, lightLevel)
+
+        emitVertex(v0, matrix, buffer, color, overlayCoords, light, nxOut, nyOut, nzOut, scratch)
+        emitVertex(v1, matrix, buffer, color, overlayCoords, light, nxOut, nyOut, nzOut, scratch)
+        emitVertex(v2, matrix, buffer, color, overlayCoords, light, nxOut, nyOut, nzOut, scratch)
+        emitVertex(v3, matrix, buffer, color, overlayCoords, light, nxOut, nyOut, nzOut, scratch)
     }
 
     private fun emitVertex(
@@ -67,6 +71,12 @@ data class BedrockQuad(
 
     companion object {
         const val PIXEL_SCALE = 16f
+
+        private fun emissive(base: Int, level: Int): Int {
+            val block = maxOf((base shr 4) and 0xF, level)
+            val sky = maxOf((base shr 20) and 0xF, level)
+            return (block shl 4) or (sky shl 20)
+        }
     }
 }
 //?}

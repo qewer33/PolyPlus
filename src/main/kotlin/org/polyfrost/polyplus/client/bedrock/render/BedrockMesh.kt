@@ -39,14 +39,14 @@ class BedrockMesh private constructor(
     companion object {
         val EMPTY: BedrockMesh = BedrockMesh(emptyList())
 
-        fun fromBone(bone: BedrockBone, textureWidth: Int, textureHeight: Int): BedrockMesh {
+        fun fromBone(bone: BedrockBone, textureWidth: Int, textureHeight: Int, lightLevel: Int = -1): BedrockMesh {
             if (bone.cubes.isEmpty())
                 return EMPTY
 
-            return merge(bone.cubes.map { fromCube(it, bone, textureWidth, textureHeight) })
+            return merge(bone.cubes.map { fromCube(it, bone, textureWidth, textureHeight, lightLevel) })
         }
 
-        fun fromCube(cube: BedrockCube, bone: BedrockBone, texW: Int, texH: Int): BedrockMesh {
+        fun fromCube(cube: BedrockCube, bone: BedrockBone, texW: Int, texH: Int, lightLevel: Int = -1): BedrockMesh {
             val bounds = computeBounds(cube, bone)
             val mirror = cube.size.x < 0f
             val flipU = cube.mirror
@@ -59,7 +59,7 @@ class BedrockMesh private constructor(
                 buildBoxQuads(cube, bounds, cube.uv.box, texW.toFloat(), texH.toFloat(), mirror, flipU, rotation, pivot)
             }
 
-            return BedrockMesh(quads)
+            return BedrockMesh(if (lightLevel < 0) quads else quads.map { it.copy(lightLevel = lightLevel) })
         }
 
         fun merge(meshes: List<BedrockMesh>): BedrockMesh {

@@ -30,6 +30,11 @@ data class BedrockBone(
     val pivot: Vector3f,
     val rotation: Vector3f,
     val cubes: List<BedrockCube>,
+    /**
+     * Fake-glow light level 0..15 parsed from a `glow`/`glowN` marker in the bone
+     * (Blockbench group) name. `-1` = no marker; inherit parent or render at ambient light.
+     */
+    val lightLevel: Int = -1,
 )
 
 data class BedrockCube(

@@ -21,6 +21,8 @@ object BedrockGeometryParser {
     private const val DEFAULT_TEXTURE_SIZE = 64
     private const val UNKNOWN_IDENTIFIER = "geometry.unknown"
     private const val NO_PARENT = ""
+    private const val MAX_LIGHT = 15
+    private val GLOW_PATTERN = Regex("""glow(\d{1,2})?""", RegexOption.IGNORE_CASE)
 
     fun parse(stream: InputStream): BedrockGeometry {
         val root = JsonParser.parseReader(InputStreamReader(stream)).asJsonObject
@@ -103,7 +105,18 @@ object BedrockGeometryParser {
             parent = obj.optionalString("parent", NO_PARENT),
             rotation = obj.optionalArray("rotation").toVec3(),
             cubes = obj.getAsJsonArray("cubes")?.map { parseCube(it.asJsonObject) } ?: emptyList(),
+            lightLevel = parseGlowLevel(obj.optionalString("name")),
         )
+    }
+
+    /**
+     * Fake-glow marker in a Blockbench group name. `glow` -> fullbright (15),
+     * `glowN` -> level N clamped 0..15. Returns -1 when absent.
+     */
+    private fun parseGlowLevel(name: String): Int {
+        val match = GLOW_PATTERN.find(name) ?: return -1
+        val digits = match.groupValues[1]
+        return if (digits.isEmpty()) MAX_LIGHT else digits.toInt().coerceIn(0, MAX_LIGHT)
     }
 
     private fun parseCube(obj: JsonObject): BedrockCube {
