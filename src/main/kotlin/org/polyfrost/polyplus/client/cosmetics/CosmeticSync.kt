@@ -49,6 +49,7 @@ object CosmeticSync : EarlyInitializable {
                 is ClientboundPacket.CosmeticsInfo -> handleCosmeticsInfo(packet)
                 is ClientboundPacket.SubscriptionSnapshot -> handleSubscriptionSnapshot(packet)
                 is ClientboundPacket.PlayerCosmeticEquipped -> handlePlayerCosmeticEquipped(packet)
+                is ClientboundPacket.PlayerParticleColorChanged -> handleParticleColorChanged(packet)
                 is ClientboundPacket.OwnershipUpdated -> handleOwnershipUpdated(packet)
                 //? if >= 1.21.1 {
                 is ClientboundPacket.PlayerEmoteStarted -> handleEmotePlay(packet.player, packet.emoteId)
@@ -121,6 +122,9 @@ object CosmeticSync : EarlyInitializable {
             CosmeticCatalog.applyRemoteEquipped(uuid, equipment)
             applyActiveToPlayer(uuid, equipment.values.toList())
         }
+        for ((uuidString, color) in packet.particleColors) {
+            CosmeticCatalog.setParticleColor(UUID.fromString(uuidString), color)
+        }
         for ((uuidString, emoteId) in packet.activeEmotes) {
             handleEmotePlay(uuidString, emoteId)
         }
@@ -130,6 +134,15 @@ object CosmeticSync : EarlyInitializable {
         val uuid = UUID.fromString(packet.player)
         CosmeticCatalog.applyRemoteEquippedSlot(uuid, packet.slot, packet.cosmeticId)
         applyActiveToPlayer(uuid, packet.cosmeticId?.let(::listOf).orEmpty())
+    }
+
+    private fun handleParticleColorChanged(packet: ClientboundPacket.PlayerParticleColorChanged) {
+        val uuid = UUID.fromString(packet.player)
+        if (packet.color != null) {
+            CosmeticCatalog.setParticleColor(uuid, packet.color)
+        } else {
+            CosmeticCatalog.clearParticleColor(uuid)
+        }
     }
 
     private fun handleOwnershipUpdated(packet: ClientboundPacket.OwnershipUpdated) {

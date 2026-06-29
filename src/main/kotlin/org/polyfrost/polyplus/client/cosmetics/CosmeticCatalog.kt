@@ -22,6 +22,7 @@ import org.polyfrost.polyplus.client.network.http.responses.EquippedCosmetics
 import org.polyfrost.polyplus.client.network.http.responses.PartialEquippedCosmetics
 import org.polyfrost.polyplus.client.network.http.responses.PlayerCosmetics
 import org.polyfrost.polyplus.client.network.http.responses.SetEquippedCosmeticsRequest
+import org.polyfrost.polyplus.client.utils.ClientPlatform
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
@@ -34,6 +35,7 @@ object CosmeticCatalog {
 
     private val groupMeta = ConcurrentHashMap<Int, GroupMeta>()
     private val remoteEquipped = ConcurrentHashMap<UUID, Map<BodySlot, Int>>()
+    private val particleColors = ConcurrentHashMap<UUID, Int>()
     private var localEquipped: EquippedCosmetics = EquippedCosmetics()
     private var selectedEmoteId: Int? = null
     private var ownedCosmeticIds: Set<Int> = emptySet()
@@ -52,6 +54,16 @@ object CosmeticCatalog {
     fun allEmoteDefinitions(): Collection<CosmeticDefinition> = emoteDefinitions.values
 
     fun getRemoteEquipped(uuid: UUID): Map<BodySlot, Int>? = remoteEquipped[uuid]
+
+    fun getParticleColor(uuid: UUID): Int? = particleColors[uuid]
+
+    fun setParticleColor(uuid: UUID, color: Int) {
+        particleColors[uuid] = color
+    }
+
+    fun clearParticleColor(uuid: UUID) {
+        particleColors.remove(uuid)
+    }
 
     fun getActiveId(uuid: UUID, slot: BodySlot): Int? =
         remoteEquipped[uuid]?.get(slot)
@@ -129,6 +141,13 @@ object CosmeticCatalog {
         val ownedDefs = ownedGroups.flatMap { it.flatten() }
         val equippedKnown = player.equipped.filterKeys { it != BodySlot.Unknown }
 
+        val localUuid = ClientPlatform.localPlayerUuid()
+        if (player.particleColor != null) {
+            setParticleColor(localUuid, player.particleColor)
+        } else {
+            clearParticleColor(localUuid)
+        }
+
         lock.withLock {
             localEquipped = EquippedCosmetics(equippedKnown)
             ownedCosmeticIds = ownedDefs.map { it.id }.toSet()
@@ -196,6 +215,7 @@ object CosmeticCatalog {
 
     fun removeRemote(uuid: UUID) {
         remoteEquipped.remove(uuid)
+        particleColors.remove(uuid)
     }
 
     /**
@@ -254,6 +274,7 @@ object CosmeticCatalog {
         emoteDefinitions.clear()
         groupMeta.clear()
         remoteEquipped.clear()
+        particleColors.clear()
         localEquipped = EquippedCosmetics()
         selectedEmoteId = null
         ownedCosmeticIds = emptySet()

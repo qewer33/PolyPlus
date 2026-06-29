@@ -32,6 +32,10 @@ sealed interface ServerboundPacket {
     ) : ServerboundPacket
 
     @Serializable
+    @SerialName("SetParticleColor")
+    data class SetParticleColor(val color: Int?) : ServerboundPacket
+
+    @Serializable
     @SerialName("PlayEmote")
     data class PlayEmote(@SerialName("emote_id") val emoteId: Int) : ServerboundPacket
 

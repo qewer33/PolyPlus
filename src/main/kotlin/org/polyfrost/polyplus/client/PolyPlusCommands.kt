@@ -48,6 +48,7 @@ object PolyPlusCommands {
 
         //? if >= 1.21.1 {
         root = root.then(CosmeticCommands.build())
+        root = root.then(ParticleCommands.build())
         //?}
 
         return root

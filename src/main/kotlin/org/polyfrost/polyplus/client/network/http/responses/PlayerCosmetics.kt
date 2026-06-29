@@ -8,4 +8,5 @@ data class PlayerCosmetics(
     @SerialName("cosmetics") val owned: List<CosmeticGroupResponse>,
     val emotes: List<EmoteDefinition> = emptyList(),
     val equipped: Map<BodySlot, Int> = emptyMap(),
+    @SerialName("particle_color") val particleColor: Int? = null,
 )

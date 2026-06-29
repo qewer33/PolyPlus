@@ -16,6 +16,7 @@ import net.minecraft.client.renderer.entity.LivingEntityRenderer
 import org.polyfrost.polyplus.client.bedrock.render.BedrockAttachedModelRenderer
 import org.polyfrost.polyplus.client.cosmetics.CosmeticEquipment
 import org.polyfrost.polyplus.client.cosmetics.playback.CosmeticPlayback
+import org.polyfrost.polyplus.client.network.http.responses.BodySlot
 import org.polyfrost.polyplus.client.render.PlayerRenderContext
 
 object CosmeticRenderer {
@@ -27,9 +28,10 @@ object CosmeticRenderer {
         state: AvatarRenderState,
         playerModel: PlayerModel,
         equipment: CosmeticEquipment,
+        particleColor: Int?,
     ) {
         val overlay = LivingEntityRenderer.getOverlayCoords(state, 0f)
-        val draws = draws(equipment, PlayerRenderContext.from(state))
+        val draws = draws(equipment, PlayerRenderContext.from(state), particleColor)
         BedrockAttachedModelRenderer.submit(poseStack, submitNodeCollector, lightCoords, overlay, playerModel, draws)
     }
     //?} elif >= 1.21.4 {
@@ -40,9 +42,10 @@ object CosmeticRenderer {
         state: PlayerRenderState,
         playerModel: PlayerModel,
         equipment: CosmeticEquipment,
+        particleColor: Int?,
     ) {
         val overlay = LivingEntityRenderer.getOverlayCoords(state, 0f)
-        val draws = draws(equipment, PlayerRenderContext.from(state))
+        val draws = draws(equipment, PlayerRenderContext.from(state), particleColor)
         BedrockAttachedModelRenderer.render(poseStack, bufferSource, lightCoords, overlay, playerModel, draws)
     }
     *///?} else {
@@ -54,20 +57,30 @@ object CosmeticRenderer {
         renderContext: PlayerRenderContext,
         playerModel: PlayerModel,
         equipment: CosmeticEquipment,
+        particleColor: Int?,
     ) {
         val overlay = LivingEntityRenderer.getOverlayCoords(player, 0f)
-        val draws = draws(equipment, renderContext)
+        val draws = draws(equipment, renderContext, particleColor)
         BedrockAttachedModelRenderer.render(poseStack, bufferSource, lightCoords, overlay, playerModel, draws)
     }
     *///?}
 
-    private fun draws(equipment: CosmeticEquipment, renderContext: PlayerRenderContext): List<BedrockAttachedModelRenderer.DrawCall> =
+    private fun draws(
+        equipment: CosmeticEquipment,
+        renderContext: PlayerRenderContext,
+        particleColor: Int?,
+    ): List<BedrockAttachedModelRenderer.DrawCall> =
         equipment.equipped().map { entry ->
+            val tinted = entry.cosmetic.slot == BodySlot.Aura && particleColor != null
+            val color = if (tinted) particleColor!! else -1
+            val translucent = tinted && (color ushr 24) != 0xFF
             BedrockAttachedModelRenderer.DrawCall(
                 model = entry.cosmetic.model,
                 texture = entry.cosmetic.texture,
                 sample = CosmeticPlayback.sample(entry.cosmetic, entry.startTimeMs, renderContext),
                 poseWeight = 1f,
+                color = color,
+                translucent = translucent,
             )
         }
 }

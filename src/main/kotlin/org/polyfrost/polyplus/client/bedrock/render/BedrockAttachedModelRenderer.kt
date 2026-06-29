@@ -22,6 +22,8 @@ object BedrockAttachedModelRenderer {
         val texture: Identifier,
         val sample: Map<String, BoneTransform>,
         val poseWeight: Float,
+        val color: Int = -1,
+        val translucent: Boolean = false,
     )
 
     private fun prepare(draw: DrawCall) {
@@ -44,11 +46,11 @@ object BedrockAttachedModelRenderer {
             prepare(draw)
 
             //? if >= 26.1 {
-            /*val renderType = RenderTypes.entityCutout(draw.texture)
+            /*val renderType = if (draw.translucent) RenderTypes.entityTranslucent(draw.texture) else RenderTypes.entityCutout(draw.texture)
             *///?} elif >= 1.21.11 {
-            val renderType = RenderTypes.entityCutoutNoCull(draw.texture)
+            val renderType = if (draw.translucent) RenderTypes.entityTranslucent(draw.texture) else RenderTypes.entityCutoutNoCull(draw.texture)
             //?} else {
-            /*val renderType = RenderType.entityCutoutNoCull(draw.texture)
+            /*val renderType = if (draw.translucent) RenderType.entityTranslucent(draw.texture) else RenderType.entityCutoutNoCull(draw.texture)
             *///?}
 
             for (attachment in draw.model.attachments) {
@@ -58,7 +60,7 @@ object BedrockAttachedModelRenderer {
                 submitNodeCollector.submitCustomGeometry(poseStack, renderType) { basePose, buffer ->
                     val localStack = PoseStack()
                     localStack.last().set(basePose)
-                    attachment.rootBone.render(localStack, buffer, lightCoords, overlayCoords)
+                    attachment.rootBone.render(localStack, buffer, lightCoords, overlayCoords, draw.color)
                 }
 
                 poseStack.popPose()
@@ -76,13 +78,13 @@ object BedrockAttachedModelRenderer {
     ) {
         for (draw in draws) {
             prepare(draw)
-            val renderType = RenderType.entityCutoutNoCull(draw.texture)
+            val renderType = if (draw.translucent) RenderType.entityTranslucent(draw.texture) else RenderType.entityCutoutNoCull(draw.texture)
             val buffer = bufferSource.getBuffer(renderType)
 
             for (attachment in draw.model.attachments) {
                 poseStack.pushPose()
                 attachment.attachBone.translateAndRotateChain(playerModel, poseStack)
-                attachment.rootBone.render(poseStack, buffer, lightCoords, overlayCoords)
+                attachment.rootBone.render(poseStack, buffer, lightCoords, overlayCoords, draw.color)
                 poseStack.popPose()
             }
         }

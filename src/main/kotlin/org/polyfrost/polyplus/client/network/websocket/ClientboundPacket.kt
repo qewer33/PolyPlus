@@ -19,6 +19,7 @@ sealed interface ClientboundPacket {
     data class SubscriptionSnapshot(
         val equipped: Map<String, Map<BodySlot, Int>>,
         @SerialName("active_emotes") val activeEmotes: Map<String, Int>,
+        @SerialName("particle_colors") val particleColors: Map<String, Int> = emptyMap(),
     ) : ClientboundPacket
 
     @Serializable
@@ -27,6 +28,13 @@ sealed interface ClientboundPacket {
         val player: String,
         val slot: BodySlot,
         @SerialName("cosmetic_id") val cosmeticId: Int?,
+    ) : ClientboundPacket
+
+    @Serializable
+    @SerialName("PlayerParticleColorChanged")
+    data class PlayerParticleColorChanged(
+        val player: String,
+        val color: Int?,
     ) : ClientboundPacket
 
     @Serializable

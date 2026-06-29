@@ -202,7 +202,8 @@ object BedrockAnimationParser {
                             val time = readTimestamp(timeKey)
                             keyframes += Keyframe(
                                 timeTicks = time * TICKS_PER_SECOND,
-                                value = readVectorFrame(frameElement, default, isRotation),
+                                valuePre = readVectorFrame(frameElement, default, isRotation, preferPre = true),
+                                valuePost = readVectorFrame(frameElement, default, isRotation, preferPre = false),
                                 easing = if (frameElement is JsonObject) readEasing(frameElement) else EasingMode.LINEAR,
                             )
                         }
@@ -216,13 +217,20 @@ object BedrockAnimationParser {
         }
     }
 
-    private fun readVectorFrame(frameElement: JsonElement, default: Vector3f, isRotation: Boolean): MolangVector3 {
+    private fun readVectorFrame(
+        frameElement: JsonElement,
+        default: Vector3f,
+        isRotation: Boolean,
+        preferPre: Boolean = false,
+    ): MolangVector3 {
         return when (frameElement) {
             is JsonObject -> {
-                val vectorElement = frameElement.get("post")
+                val sideKey = if (preferPre) "pre" else "post"
+                val otherKey = if (preferPre) "post" else "pre"
+                val vectorElement = frameElement.get(sideKey)
                     ?: frameElement.get("vector")
                     ?: frameElement.get("value")
-                    ?: frameElement.get("pre")
+                    ?: frameElement.get(otherKey)
                     ?: frameElement
 
                 readVector(vectorElement, default, isRotation)

@@ -62,9 +62,13 @@ class VectorChannel private constructor(
 
 data class Keyframe<T>(
     val timeTicks: Float,
-    val value: T,
+    val valuePre: T,
+    val valuePost: T,
     val easing: EasingMode = EasingMode.LINEAR,
-)
+) {
+    constructor(timeTicks: Float, value: T, easing: EasingMode = EasingMode.LINEAR)
+        : this(timeTicks, value, value, easing)
+}
 
 enum class EasingMode {
     LINEAR, STEP, CATMULLROM, EASE_IN, EASE_OUT, EASE_IN_OUT;
@@ -109,8 +113,8 @@ class MolangKeyframeTrack private constructor(
         interpolator: MolangVectorInterpolator,
     ): Vector3f {
         if (keyframes.isEmpty()) return default
-        if (timeTicks <= keyframes.first().timeTicks) return keyframes.first().value.eval(context)
-        if (timeTicks >= keyframes.last().timeTicks) return keyframes.last().value.eval(context)
+        if (timeTicks <= keyframes.first().timeTicks) return keyframes.first().valuePost.eval(context)
+        if (timeTicks >= keyframes.last().timeTicks) return keyframes.last().valuePost.eval(context)
 
         for (index in 1 until keyframes.size) {
             val fromKeyframe = keyframes[index - 1]
@@ -121,17 +125,17 @@ class MolangKeyframeTrack private constructor(
                 val alpha = if (span <= 0f) 1f else (timeTicks - fromKeyframe.timeTicks) / span
 
                 return interpolator.interpolate(
-                    keyframes.getOrNull(index - 2)?.value?.eval(context),
-                    fromKeyframe.value.eval(context),
-                    toKeyframe.value.eval(context),
-                    keyframes.getOrNull(index + 1)?.value?.eval(context),
+                    keyframes.getOrNull(index - 2)?.valuePost?.eval(context),
+                    fromKeyframe.valuePost.eval(context),
+                    toKeyframe.valuePre.eval(context),
+                    keyframes.getOrNull(index + 1)?.valuePre?.eval(context),
                     alpha,
-                    toKeyframe.easing,
+                    fromKeyframe.easing,
                 )
             }
 
         }
-        return keyframes.last().value.eval(context)
+        return keyframes.last().valuePost.eval(context)
     }
 
     companion object {
