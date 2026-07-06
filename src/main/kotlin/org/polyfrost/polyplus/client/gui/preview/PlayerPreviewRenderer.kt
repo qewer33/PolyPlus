@@ -80,15 +80,17 @@ object PlayerPreviewRenderer {
     private val LOG = org.slf4j.LoggerFactory.getLogger("polyplus/preview")
     private const val MAX_DIM = 512
 
-    private const val MODEL_SCALE_FACTOR = 0.5f
+    private const val MODEL_SCALE_FACTOR = 1.05f
+
+    private const val VERTICAL_ANCHOR = 1.0f
 
     private var target: TextureTarget? = null
     private var dummy: AbstractClientPlayer? = null
     //? if < 26.1 {
-    /*private val projection = CachedOrthoProjectionMatrixBuffer("polyplus_preview", -1000f, 1000f, true)
+    /*private val projection by lazy { CachedOrthoProjectionMatrixBuffer("polyplus_preview", -1000f, 1000f, true) }
     *///?}
     //? if >= 26.1 {
-    private val projection = ProjectionMatrixBuffer("polyplus_preview")
+    private val projection by lazy { ProjectionMatrixBuffer("polyplus_preview") }
 
     private fun orthoMatrix(w: Int, h: Int): Matrix4f =
         Matrix4f().setOrtho(0f, w.toFloat(), h.toFloat(), 0f, -1000f, 1000f)
@@ -131,8 +133,8 @@ object PlayerPreviewRenderer {
             RenderSystem.outputColorTextureOverride = null
             RenderSystem.outputDepthTextureOverride = null
             RenderSystem.restoreProjectionMatrix()
-            if (savedLights != null) RenderSystem.setShaderLights(savedLights)
-            if (savedFog != null) RenderSystem.setShaderFog(savedFog)
+            savedLights?.let { RenderSystem.setShaderLights(it) }
+            savedFog?.let { RenderSystem.setShaderFog(it) }
         }
 
         readback(colorTex, w, h)
@@ -157,7 +159,7 @@ object PlayerPreviewRenderer {
 
         val scale = h * MODEL_SCALE_FACTOR
         val pose = PoseStack()
-        pose.translate(w / 2f, h / 2f, 0f)
+        pose.translate(w / 2f, h * VERTICAL_ANCHOR, 0f)
         pose.scale(scale, scale, scale)
         pose.translate(0f, bbH / 2f, 0f)
         pose.mulPose(Quaternionf().rotateZ(Math.PI.toFloat()))
@@ -194,7 +196,7 @@ object PlayerPreviewRenderer {
 
         val scale = h * MODEL_SCALE_FACTOR
         val pose = PoseStack()
-        pose.translate(w / 2f, h / 2f, 0f)
+        pose.translate(w / 2f, h * VERTICAL_ANCHOR, 0f)
         pose.scale(scale, scale, scale)
         pose.translate(0f, bbH / 2f, 0f)
         pose.mulPose(Quaternionf().rotateZ(Math.PI.toFloat()))

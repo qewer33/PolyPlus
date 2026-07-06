@@ -215,6 +215,63 @@ private object MainMenuRasterAssets {
         }.getOrNull()?.also { cache[path] = it }
 }
 
+private object MainMenuPlayerHead {
+    @Volatile
+    private var head: ImageBitmap? = null
+    @Volatile
+    private var requested = false
+    private const val SIZE = 64
+
+    fun get(): ImageBitmap? = head
+
+    fun ensureLoaded() {
+        if (requested) return
+        requested = true
+        Thread({ runCatching { load() }.onFailure { requested = false } }, "polyplus-menu-head").apply {
+            isDaemon = true
+            start()
+        }
+    }
+
+    private fun load() {
+        val mc = net.minecraft.client.Minecraft.getInstance()
+        val url = skinUrl(mc) ?: return
+        val skin = javax.imageio.ImageIO.read(java.net.URI(url).toURL()) ?: return
+        head = buildFace(skin)
+    }
+
+    private fun skinUrl(mc: net.minecraft.client.Minecraft): String? {
+        val service =
+            //? if >= 1.21.10 {
+            mc.services().sessionService
+            //?} else {
+            /*mc.minecraftSessionService
+            *///?}
+        val texture = runCatching { service.getTextures(mc.gameProfile).skin() }.getOrNull() ?: return null
+        return texture.url
+    }
+
+    private fun buildFace(skin: java.awt.image.BufferedImage): ImageBitmap {
+        val out = ByteArray(SIZE * SIZE * 4)
+        for (y in 0 until SIZE) {
+            val oy = y * 8 / SIZE
+            for (x in 0 until SIZE) {
+                val ox = x * 8 / SIZE
+                val base = skin.getRGB(8 + ox, 8 + oy)
+                val hat = runCatching { skin.getRGB(40 + ox, 8 + oy) }.getOrDefault(0)
+                val argb = if ((hat ushr 24) != 0) hat else base
+                val i = (y * SIZE + x) * 4
+                out[i] = argb.toByte()               // B
+                out[i + 1] = (argb ushr 8).toByte()  // G
+                out[i + 2] = (argb ushr 16).toByte() // R
+                out[i + 3] = 0xFF.toByte()           // A (face is opaque)
+            }
+        }
+        return SkiaImage.makeRaster(org.jetbrains.skia.ImageInfo.makeN32Premul(SIZE, SIZE), out, SIZE * 4)
+            .toComposeImageBitmap()
+    }
+}
+
 private class MenuActions(
     val singleplayer: () -> Unit,
     val multiplayer: () -> Unit,
@@ -228,6 +285,7 @@ private class MenuActions(
 private const val ASSETS = "assets/polyplus/mainmenu/"
 
 private val PageBackground = Color(0xFF11171C)
+private val PreviewGradient = Color(0xFF0F1C33)
 private val PanelBackground = Color(0x80273137)
 private val PanelBorder = Color(0x99FFFFFF)
 private val ServerIconBackground = Color(0x33FFFFFF)
@@ -295,7 +353,10 @@ private fun CenterColumn(modifier: Modifier, actions: MenuActions, assetsReady: 
     Column(modifier = modifier.width(440.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         MainLogo(assetsReady)
         Spacer(Modifier.height(16.dp))
-        MenuText("ONECLIENT", fontSize = 42.sp, fontWeight = FontWeight.Bold, letterSpacing = 2.5.sp, fontFamily = if (assetsReady) Outfit else FontFamily.Default)
+        Box(contentAlignment = Alignment.Center) {
+            MenuText("ONECLIENT", fontSize = 42.sp, fontWeight = FontWeight.Bold, letterSpacing = 2.5.sp, color = Color(0x33000000), fontFamily = if (assetsReady) Outfit else FontFamily.Default, modifier = Modifier.offset(y = 3.dp))
+            MenuText("ONECLIENT", fontSize = 42.sp, fontWeight = FontWeight.Bold, letterSpacing = 2.5.sp, fontFamily = if (assetsReady) Outfit else FontFamily.Default)
+        }
         Spacer(Modifier.height(48.dp))
         Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             PillButton("Singleplayer", ASSETS + "user-01.svg", Modifier.fillMaxWidth(), assetsReady, actions.singleplayer)
@@ -376,13 +437,12 @@ private fun RightColumn(modifier: Modifier, assetsReady: Boolean) {
                 PlayerPreview(
                     Modifier.fillMaxWidth().height(210.dp),
                     source = PlayerPreviewSource.LocalLive,
+                    bottomFade = Brush.verticalGradient(
+                        0.72243f to PreviewGradient.copy(alpha = 0f),
+                        1f to PreviewGradient.copy(alpha = 0.84f),
+                    ),
                 )
             }
-            Box(
-                Modifier.fillMaxWidth().height(70.dp).align(Alignment.BottomCenter).drawBehind {
-                    drawRect(Brush.verticalGradient(listOf(Color.Transparent, PageBackground)))
-                },
-            )
         }
         AccountPill(name = playerName(), assetsReady = assetsReady)
         PillButton("Social", ASSETS + "message-chat-circle.svg", Modifier.fillMaxWidth(), assetsReady)
@@ -411,7 +471,7 @@ private fun Footer(modifier: Modifier, assetsReady: Boolean) {
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             MenuIcon(ASSETS + "footer-logo.svg", TextPrimary, Modifier.size(25.dp), assetsReady)
-            FooterBrandText("Fabric 1.21.11", assetsReady)
+            FooterBrandText(platformLabel(), assetsReady)
         }
         MenuText(
             "Copyright Mojang AB, Do Not distribute!",
@@ -524,6 +584,14 @@ private fun ServerRow(
 
 @Composable
 private fun AccountPill(name: String, assetsReady: Boolean) {
+    var head by remember { mutableStateOf(MainMenuPlayerHead.get()) }
+    LaunchedEffect(Unit) {
+        MainMenuPlayerHead.ensureLoaded()
+        while (head == null) {
+            delay(150L)
+            head = MainMenuPlayerHead.get() ?: continue
+        }
+    }
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -535,12 +603,13 @@ private fun AccountPill(name: String, assetsReady: Boolean) {
             .padding(horizontal = 10.dp),
         contentAlignment = Alignment.Center,
     ) {
-        RasterImage(
-            ASSETS + "avatar.png",
-            Modifier.align(Alignment.CenterStart).size(28.dp).clip(RoundedCornerShape(3.dp)),
-            assetsReady = assetsReady,
-            contentScale = ContentScale.Crop,
-        )
+        val avatarModifier = Modifier.align(Alignment.CenterStart).size(28.dp).clip(RoundedCornerShape(3.dp))
+        val currentHead = head
+        if (currentHead != null) {
+            Image(currentHead, contentDescription = null, modifier = avatarModifier, contentScale = ContentScale.Crop)
+        } else {
+            RasterImage(ASSETS + "avatar.png", avatarModifier, assetsReady = assetsReady, contentScale = ContentScale.Crop)
+        }
         MenuText(name, fontSize = 16.sp)
         MenuIcon(ASSETS + "chevron-up.svg", TextPrimary, Modifier.align(Alignment.CenterEnd).size(16.dp).rotate(180f), assetsReady)
     }
@@ -654,3 +723,15 @@ private fun rememberRaster(path: String): ImageBitmap? = remember(path) {
 private fun playerName(): String = runCatching {
     net.minecraft.client.Minecraft.getInstance().user.name
 }.getOrDefault("Player")
+
+private fun platformLabel(): String = runCatching {
+    //? if fabric {
+    val loaderName = "Fabric"
+    val mcVersion = net.fabricmc.loader.api.FabricLoader.getInstance()
+        .getModContainer("minecraft").map { it.metadata.version.friendlyString }.orElse("")
+    //?} else {
+    /*val loaderName = "NeoForge"
+    val mcVersion = net.minecraft.SharedConstants.getCurrentVersion().name
+    *///?}
+    if (mcVersion.isBlank()) loaderName else "$loaderName $mcVersion"
+}.getOrDefault("Fabric")

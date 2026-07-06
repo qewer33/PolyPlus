@@ -13,7 +13,12 @@ import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
@@ -26,6 +31,7 @@ fun PlayerPreview(
     source: PlayerPreviewSource = PlayerPreviewSource.LocalLive,
     autoSpin: Boolean = true,
     allowDrag: Boolean = true,
+    bottomFade: Brush? = null,
 ) {
     var yaw by remember { mutableFloatStateOf(0f) }
     var pitch by remember { mutableFloatStateOf(0f) }
@@ -43,7 +49,9 @@ fun PlayerPreview(
 
     val bitmap: ImageBitmap? by produceState(null, source, yaw, pitch, sizePx) {
         value = if (sizePx.width > 0 && sizePx.height > 0) {
-            PlayerPreviewRenderer.capture(source, yaw, pitch, sizePx.width, sizePx.height)
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+                PlayerPreviewRenderer.capture(source, yaw, pitch, sizePx.width, sizePx.height)
+            }
         } else {
             null
         }
@@ -72,7 +80,17 @@ fun PlayerPreview(
     ) {
         val bmp = bitmap
         if (bmp != null) {
-            Image(bmp, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Fit)
+            val imageModifier = if (bottomFade != null) {
+                Modifier.fillMaxSize()
+                    .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
+                    .drawWithContent {
+                        drawContent()
+                        drawRect(bottomFade, blendMode = BlendMode.SrcAtop)
+                    }
+            } else {
+                Modifier.fillMaxSize()
+            }
+            Image(bmp, contentDescription = null, modifier = imageModifier, contentScale = ContentScale.Fit)
         }
     }
 }
