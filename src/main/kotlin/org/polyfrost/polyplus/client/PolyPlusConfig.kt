@@ -33,6 +33,13 @@ object PolyPlusConfig : Config("${PolyPlusConstants.ID}.json", PolyPlusConstants
     var showPolyPlusIndicator = true
 
     @JvmStatic
+    @Switch(
+        title = "Chat Emoji",
+        description = "Render :shortcode: and unicode emoji (e.g. :sob:) as Twemoji images in chat, and suggest them as you type.",
+    )
+    var showChatEmoji = true
+
+    @JvmStatic
     @Dropdown(
         title = "Main Menu FPS Limit",
         description = "Choose how the PolyPlus main menu frame cap is selected.",

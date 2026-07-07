@@ -52,13 +52,15 @@ object PlayerPreviewRenderer {
         pitchDeg: Float,
         widthPx: Int,
         heightPx: Int,
+        modelScale: Float,
+        verticalAnchor: Float,
     ): ImageBitmap? {
         if (widthPx <= 0 || heightPx <= 0) return latest
         //? if >= 1.21.11 {
         val w = widthPx.coerceAtMost(MAX_DIM)
         val h = heightPx.coerceAtMost(MAX_DIM)
         ClientPlatform.runOnMain {
-            runCatching { renderAndReadback(source, yawDeg, pitchDeg, w, h) }
+            runCatching { renderAndReadback(source, yawDeg, pitchDeg, w, h, modelScale, verticalAnchor) }
                 .onFailure { LOG.error("[preview] capture failed", it) }
         }
         return latest
@@ -80,10 +82,6 @@ object PlayerPreviewRenderer {
     private val LOG = org.slf4j.LoggerFactory.getLogger("polyplus/preview")
     private const val MAX_DIM = 512
 
-    private const val MODEL_SCALE_FACTOR = 1.05f
-
-    private const val VERTICAL_ANCHOR = 1.0f
-
     private var target: TextureTarget? = null
     private var dummy: AbstractClientPlayer? = null
     //? if < 26.1 {
@@ -103,7 +101,7 @@ object PlayerPreviewRenderer {
         return TextureTarget("polyplus_player_preview", w, h, true).also { target = it }
     }
 
-    private fun renderAndReadback(source: PlayerPreviewSource, yawDeg: Float, pitchDeg: Float, w: Int, h: Int) {
+    private fun renderAndReadback(source: PlayerPreviewSource, yawDeg: Float, pitchDeg: Float, w: Int, h: Int, modelScale: Float, verticalAnchor: Float) {
         val mc = Minecraft.getInstance()
         val fbo = ensureTarget(w, h)
         val colorTex = fbo.colorTexture ?: return
@@ -127,8 +125,8 @@ object PlayerPreviewRenderer {
         RenderSystem.outputDepthTextureOverride = depthView
         try {
             val level = mc.level
-            if (level != null) renderEntity(mc, level, source, yawDeg, w, h)
-            else renderDirect(mc, source, yawDeg, w, h)
+            if (level != null) renderEntity(mc, level, source, yawDeg, w, h, modelScale, verticalAnchor)
+            else renderDirect(mc, source, yawDeg, w, h, modelScale, verticalAnchor)
         } finally {
             RenderSystem.outputColorTextureOverride = null
             RenderSystem.outputDepthTextureOverride = null
@@ -140,7 +138,7 @@ object PlayerPreviewRenderer {
         readback(colorTex, w, h)
     }
 
-    private fun renderEntity(mc: Minecraft, level: ClientLevel, source: PlayerPreviewSource, yawDeg: Float, w: Int, h: Int) {
+    private fun renderEntity(mc: Minecraft, level: ClientLevel, source: PlayerPreviewSource, yawDeg: Float, w: Int, h: Int, modelScale: Float, verticalAnchor: Float) {
         val player = dummy(mc, level) ?: return
         bindEquipment(player, source)
         player.setYRot(0f); player.yRotO = 0f
@@ -157,9 +155,9 @@ object PlayerPreviewRenderer {
         state.boundingBoxHeight = bbH
         state.scale = 1f
 
-        val scale = h * MODEL_SCALE_FACTOR
+        val scale = h * modelScale
         val pose = PoseStack()
-        pose.translate(w / 2f, h * VERTICAL_ANCHOR, 0f)
+        pose.translate(w / 2f, h * verticalAnchor, 0f)
         pose.scale(scale, scale, scale)
         pose.translate(0f, bbH / 2f, 0f)
         pose.mulPose(Quaternionf().rotateZ(Math.PI.toFloat()))
@@ -178,7 +176,7 @@ object PlayerPreviewRenderer {
         mc.renderBuffers().bufferSource().endBatch()
     }
 
-    private fun renderDirect(mc: Minecraft, source: PlayerPreviewSource, yawDeg: Float, w: Int, h: Int) {
+    private fun renderDirect(mc: Minecraft, source: PlayerPreviewSource, yawDeg: Float, w: Int, h: Int, modelScale: Float, verticalAnchor: Float) {
         val skin = localSkin(mc) ?: return
         val equipment = when (source) {
             is PlayerPreviewSource.Override -> source.equipment
@@ -194,9 +192,9 @@ object PlayerPreviewRenderer {
         state.scale = 1f
         val bbH = PLAYER_BB_HEIGHT
 
-        val scale = h * MODEL_SCALE_FACTOR
+        val scale = h * modelScale
         val pose = PoseStack()
-        pose.translate(w / 2f, h * VERTICAL_ANCHOR, 0f)
+        pose.translate(w / 2f, h * verticalAnchor, 0f)
         pose.scale(scale, scale, scale)
         pose.translate(0f, bbH / 2f, 0f)
         pose.mulPose(Quaternionf().rotateZ(Math.PI.toFloat()))

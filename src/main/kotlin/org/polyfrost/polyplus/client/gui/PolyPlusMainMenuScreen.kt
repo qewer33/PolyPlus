@@ -12,6 +12,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -20,6 +21,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -36,6 +38,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -340,13 +343,29 @@ private fun MainMenu(
                 }
             },
     ) {
-        CenterColumn(Modifier.align(Alignment.Center), actions, assetsReady)
-        LeftColumn(Modifier.align(Alignment.CenterStart).padding(start = 48.dp), servers, pingTick, actions, assetsReady)
-        RightColumn(Modifier.align(Alignment.CenterEnd).padding(end = 48.dp), assetsReady)
+        BoxWithConstraints(Modifier.fillMaxSize()) {
+            val scale = minOf(maxWidth.value / BASE_WIDTH, maxHeight.value / BASE_HEIGHT)
+            Box(
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .requiredSize(BASE_WIDTH.dp, BASE_HEIGHT.dp)
+                    .graphicsLayer {
+                        scaleX = scale
+                        scaleY = scale
+                    },
+            ) {
+                CenterColumn(Modifier.align(Alignment.Center), actions, assetsReady)
+                LeftColumn(Modifier.align(Alignment.CenterStart).padding(start = 48.dp), servers, pingTick, actions, assetsReady)
+                RightColumn(Modifier.align(Alignment.CenterEnd).padding(end = 48.dp), assetsReady)
+            }
+        }
         WindowControls(Modifier.align(Alignment.TopEnd).padding(16.dp), actions, assetsReady)
         Footer(Modifier.fillMaxSize(), assetsReady)
     }
 }
+
+private const val BASE_WIDTH = 1240f
+private const val BASE_HEIGHT = 720f
 
 @Composable
 private fun CenterColumn(modifier: Modifier, actions: MenuActions, assetsReady: Boolean) {
@@ -441,6 +460,8 @@ private fun RightColumn(modifier: Modifier, assetsReady: Boolean) {
                         0.72243f to PreviewGradient.copy(alpha = 0f),
                         1f to PreviewGradient.copy(alpha = 0.84f),
                     ),
+                    modelScale = 1.05f,
+                    verticalAnchor = 1.0f,
                 )
             }
         }

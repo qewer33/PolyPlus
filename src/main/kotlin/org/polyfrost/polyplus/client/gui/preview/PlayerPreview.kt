@@ -32,6 +32,8 @@ fun PlayerPreview(
     autoSpin: Boolean = true,
     allowDrag: Boolean = true,
     bottomFade: Brush? = null,
+    modelScale: Float = 0.5f,
+    verticalAnchor: Float = 0.5f,
 ) {
     var yaw by remember { mutableFloatStateOf(0f) }
     var pitch by remember { mutableFloatStateOf(0f) }
@@ -47,10 +49,10 @@ fun PlayerPreview(
         }
     }
 
-    val bitmap: ImageBitmap? by produceState(null, source, yaw, pitch, sizePx) {
+    val bitmap: ImageBitmap? by produceState(null, source, yaw, pitch, sizePx, modelScale, verticalAnchor) {
         value = if (sizePx.width > 0 && sizePx.height > 0) {
             kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
-                PlayerPreviewRenderer.capture(source, yaw, pitch, sizePx.width, sizePx.height)
+                PlayerPreviewRenderer.capture(source, yaw, pitch, sizePx.width, sizePx.height, modelScale, verticalAnchor)
             }
         } else {
             null

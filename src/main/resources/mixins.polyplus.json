@@ -14,6 +14,8 @@
     "client.Mixin_OneConfigNavigationGroups",
     "client.Mixin_ThemeRegistryBranding",
     "client.NameTagBadgeMixin",
+    "client.ChatEmojiMixin",
+    "client.ChatScreenEmojiMixin",
     "client.Mixin_ReplaceMainMenuEarly",
     "client.Mixin_ReplaceMainMenu",
     "client.Mixin_TrackRecentServers",
