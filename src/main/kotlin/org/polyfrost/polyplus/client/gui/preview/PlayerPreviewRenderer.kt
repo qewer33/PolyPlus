@@ -52,6 +52,9 @@ import org.joml.Quaternionf
 import org.polyfrost.polyplus.client.cosmetics.access.PlayerCosmeticsAccess
 import org.polyfrost.polyplus.client.utils.ClientPlatform
 //?}
+//? if >= 1.21.5 && < 1.21.8 {
+/*import org.polyfrost.polyplus.client.utils.ClientPlatform
+*///?}
 //? if >= 1.21.1 && < 1.21.5 {
 /*import com.mojang.blaze3d.pipeline.TextureTarget
 import com.mojang.blaze3d.platform.Lighting

@@ -38,7 +38,8 @@ fun catalogBundle(name: String) =
     versionedCatalogs.firstNotNullOfOrNull { cat -> cat.findBundle(name).orElse(null) }
 
 group = property("mod.group") as String
-version = property("mod.version") as String
+version = "${property("mod.version")}+${stonecutter.current.version}"
+base.archivesName = property("mod.id") as String
 val oneconfigVersion = property("oneconfig_version") as String
 
 repositories {
