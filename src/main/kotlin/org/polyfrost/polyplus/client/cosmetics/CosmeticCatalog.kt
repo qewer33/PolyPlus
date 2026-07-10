@@ -17,7 +17,6 @@ import org.polyfrost.polyplus.client.network.http.responses.CosmeticDefinition
 import org.polyfrost.polyplus.client.network.http.responses.CosmeticGroupResponse
 import org.polyfrost.polyplus.client.network.http.responses.CosmeticList
 import org.polyfrost.polyplus.client.network.http.responses.CosmeticType
-import org.polyfrost.polyplus.client.network.http.responses.EmoteList
 import org.polyfrost.polyplus.client.network.http.responses.EquippedCosmetics
 import org.polyfrost.polyplus.client.network.http.responses.PartialEquippedCosmetics
 import org.polyfrost.polyplus.client.network.http.responses.PlayerCosmetics
@@ -102,11 +101,6 @@ object CosmeticCatalog {
         }.onFailure { LOGGER.error("Failed to fetch cosmetic catalog", it) }
             .getOrNull() ?: return
 
-        val emotes = runCatching {
-            PolyPlusClient.HTTP.get("${PolyPlusConfig.apiUrl}/emotes").body<EmoteList>()
-        }.onFailure { LOGGER.error("Failed to fetch emote catalog", it) }
-            .getOrNull()
-
         // Drop groups whose type this client version doesn't recognize
         val knownGroups = cosmetics.contents.filter { it.type != CosmeticType.Unknown }
         val skipped = cosmetics.contents.size - knownGroups.size
@@ -114,7 +108,9 @@ object CosmeticCatalog {
             LOGGER.warn("Ignored {} cosmetic group(s) with unknown type/slot", skipped)
         }
 
-        val flattened = knownGroups.flatMap { it.flatten() }
+        val (emoteGroups, cosmeticGroups) = knownGroups.partition { it.type == CosmeticType.Emote }
+        val flattened = cosmeticGroups.flatMap { it.flatten() }
+        val flattenedEmotes = emoteGroups.flatMap { it.flatten() }
 
         lock.withLock {
             cosmeticDefinitions.clear()
@@ -122,23 +118,23 @@ object CosmeticCatalog {
                 cosmeticDefinitions[definition.id] = definition
             }
             groupMeta.clear()
-            for (group in knownGroups) {
+            for (group in cosmeticGroups) {
                 groupMeta[group.id] = group.toMeta()
             }
             emoteDefinitions.clear()
-            for (definition in emotes?.contents.orEmpty()) {
-                emoteDefinitions[definition.id] = definition.asCosmeticDefinition()
+            for (definition in flattenedEmotes) {
+                emoteDefinitions[definition.id] = definition
             }
         }
 
         //? if >= 1.21.1 {
-        CosmeticAssetCache.preloadDefinitions(flattened + emotes?.contents.orEmpty().map { it.asCosmeticDefinition() })
+        CosmeticAssetCache.preloadDefinitions(flattened + flattenedEmotes)
         //?}
         LOGGER.info(
             "Loaded {} cosmetic group(s) ({} variant(s)) and {} emote definition(s) from API",
-            knownGroups.size,
+            cosmeticGroups.size,
             flattened.size,
-            emotes?.contents?.size ?: 0,
+            flattenedEmotes.size,
         )
     }
 

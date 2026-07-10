@@ -24,10 +24,18 @@
     /*,
     "client.Mixin_PanoramaBlurRadius"
     *///?}
-    //? if >= 1.21.11 && < 26.1 {
+    //? if >= 1.21.8 && < 26.1 {
     /*,
     "client.PlayerTabBadgeMixin"
     *///?}
+    //? if >= 1.21.1 && < 1.21.8 {
+    /*,
+    "client.PlayerTabBadgeLegacyMixin"
+    *///?}
+    //? if >= 26.1 {
+    ,
+    "client.PlayerTabBadgeModernMixin"
+    //?}
     //? if >= 1.21.1 {
     ,
     "client.cosmetics.AbstractClientPlayerMixin",
@@ -40,6 +48,10 @@
     "client.cosmetics.AvatarRenderStateMixin",
     "client.cosmetics.AvatarRendererMixin"
     //?}
+    //? if >= 1.21.4 && < 1.21.5 {
+    /*,
+    "client.cosmetics.EntityRenderDispatcherPlayerAccessor"
+    *///?}
   ],
   "verbose": true
 }

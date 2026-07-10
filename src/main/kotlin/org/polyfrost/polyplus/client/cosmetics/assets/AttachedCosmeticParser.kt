@@ -6,6 +6,7 @@ import org.polyfrost.polyplus.PolyPlusConstants
 import org.polyfrost.polyplus.client.bedrock.animation.BedrockAnimation
 import org.polyfrost.polyplus.client.bedrock.animation.BedrockAnimationParser
 import org.polyfrost.polyplus.client.bedrock.geometry.BedrockBone
+import org.polyfrost.polyplus.client.bedrock.geometry.BedrockCube
 import org.polyfrost.polyplus.client.bedrock.geometry.BedrockGeometry
 import org.polyfrost.polyplus.client.bedrock.geometry.BedrockGeometryParser
 import org.polyfrost.polyplus.client.bedrock.geometry.PlayerModelBone
@@ -155,40 +156,58 @@ internal object AttachedCosmeticParser {
             if (!isTopLevel || name !in renderable) {
                 return@mapValues bone
             }
-            val target = attachTargetFor(slot, bone) ?: return@mapValues bone
+            val target = attachTargetFor(geometry, slot, bone) ?: return@mapValues bone
             bone.copy(parent = target.serializedName)
         }
         return geometry.copy(bones = rewritten)
     }
 
-    private fun attachTargetFor(slot: BodySlot, bone: BedrockBone): PlayerModelBone? {
+    private fun attachTargetFor(geometry: BedrockGeometry, slot: BodySlot, bone: BedrockBone): PlayerModelBone? {
         if (slot == BodySlot.Boots) {
-            legForBone(bone)?.let { return it }
+            legForBone(geometry, bone)?.let { return it }
         }
-        if (slot == BodySlot.LeftHand || slot == BodySlot.RightHand) {
-            armForBone(bone)?.let { return it }
+        if (slot == BodySlot.LeftHand || slot == BodySlot.RightHand || slot == BodySlot.Shoulder) {
+            armForBone(geometry, bone)?.let { return it }
         }
         return defaultAttachBone(slot)
     }
 
-    private fun legForBone(bone: BedrockBone): PlayerModelBone? =
-        sideForBone(bone, PlayerModelBone.RIGHT_LEG, PlayerModelBone.LEFT_LEG)
+    private fun legForBone(geometry: BedrockGeometry, bone: BedrockBone): PlayerModelBone? =
+        sideForBone(geometry, bone, PlayerModelBone.RIGHT_LEG, PlayerModelBone.LEFT_LEG)
 
-    private fun armForBone(bone: BedrockBone): PlayerModelBone? =
-        sideForBone(bone, PlayerModelBone.RIGHT_ARM, PlayerModelBone.LEFT_ARM)
+    private fun armForBone(geometry: BedrockGeometry, bone: BedrockBone): PlayerModelBone? =
+        sideForBone(geometry, bone, PlayerModelBone.RIGHT_ARM, PlayerModelBone.LEFT_ARM)
 
     private fun sideForBone(
+        geometry: BedrockGeometry,
         bone: BedrockBone,
         negativeSide: PlayerModelBone,
         positiveSide: PlayerModelBone,
     ): PlayerModelBone? {
-        if (bone.cubes.isEmpty()) return null
-        val centerX = bone.cubes.fold(0f) { acc, cube -> acc + cube.origin.x + cube.size.x * 0.5f } / bone.cubes.size
+        val cubes = subtreeCubes(geometry, bone)
+        if (cubes.isEmpty()) return null
+        val centerX = cubes.fold(0f) { acc, cube -> acc + cube.origin.x + cube.size.x * 0.5f } / cubes.size
         return when {
             centerX < 0f -> negativeSide
             centerX > 0f -> positiveSide
             else -> null
         }
+    }
+
+    private fun subtreeCubes(geometry: BedrockGeometry, root: BedrockBone): List<BedrockCube> {
+        val cubes = ArrayList(root.cubes)
+        val queue = ArrayDeque<String>().apply { add(root.name) }
+        val seen = hashSetOf(root.name)
+        while (queue.isNotEmpty()) {
+            val parent = queue.removeFirst()
+            for (bone in geometry.bones.values) {
+                if (bone.parent == parent && seen.add(bone.name)) {
+                    cubes.addAll(bone.cubes)
+                    queue.add(bone.name)
+                }
+            }
+        }
+        return cubes
     }
 
     private fun findAnimation(root: Path, cosmeticId: Int): BedrockAnimation? {

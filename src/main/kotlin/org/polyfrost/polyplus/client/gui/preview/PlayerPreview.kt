@@ -34,6 +34,7 @@ fun PlayerPreview(
     bottomFade: Brush? = null,
     modelScale: Float = 0.5f,
     verticalAnchor: Float = 0.5f,
+    previewKey: Any = source,
 ) {
     var yaw by remember { mutableFloatStateOf(0f) }
     var pitch by remember { mutableFloatStateOf(0f) }
@@ -49,10 +50,10 @@ fun PlayerPreview(
         }
     }
 
-    val bitmap: ImageBitmap? by produceState(null, source, yaw, pitch, sizePx, modelScale, verticalAnchor) {
+    val bitmap: ImageBitmap? by produceState(null, source, yaw, pitch, sizePx, modelScale, verticalAnchor, previewKey) {
         value = if (sizePx.width > 0 && sizePx.height > 0) {
             kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
-                PlayerPreviewRenderer.capture(source, yaw, pitch, sizePx.width, sizePx.height, modelScale, verticalAnchor)
+                PlayerPreviewRenderer.capture(source, yaw, pitch, sizePx.width, sizePx.height, modelScale, verticalAnchor, previewKey)
             }
         } else {
             null
@@ -70,7 +71,7 @@ fun PlayerPreview(
                             onDragEnd = { dragging = false },
                             onDragCancel = { dragging = false },
                         ) { change, drag ->
-                            yaw += drag.x * DRAG_YAW_SENSITIVITY
+                            yaw -= drag.x * DRAG_YAW_SENSITIVITY
                             pitch = (pitch + drag.y * DRAG_PITCH_SENSITIVITY).coerceIn(-MAX_PITCH, MAX_PITCH)
                             change.consume()
                         }

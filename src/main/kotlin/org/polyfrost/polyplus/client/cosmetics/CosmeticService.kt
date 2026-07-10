@@ -19,6 +19,18 @@ object CosmeticService {
     suspend fun clearCape(): Result<Unit> =
         clearSlot(BodySlot.Cape)
 
+    suspend fun setParticleColor(color: Int?): Result<Unit> = runCatching {
+        val uuid = ClientPlatform.localPlayerUuid()
+        ClientPlatform.runOnMain {
+            if (color != null) {
+                CosmeticCatalog.setParticleColor(uuid, color)
+            } else {
+                CosmeticCatalog.clearParticleColor(uuid)
+            }
+        }
+        PolyConnection.sendPacket(ServerboundPacket.SetParticleColor(color)).getOrThrow()
+    }
+
     suspend fun clearEmote(): Result<Unit> = runCatching {
         CosmeticCatalog.setSelectedEmote(null)
         CosmeticSync.refreshVisibleSubscriptions().getOrThrow()

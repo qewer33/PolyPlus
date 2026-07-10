@@ -1,11 +1,14 @@
 package org.polyfrost.polyplus.client.utils
 
 import net.minecraft.client.Minecraft
+import org.polyfrost.oneconfig.api.platform.v1.DesktopHelper
+import org.polyfrost.oneconfig.utils.v1.Multithreading
 //? if >= 1.21.10 {
 import net.minecraft.world.entity.player.PlayerModelType
 //?} else {
 /*import net.minecraft.client.resources.PlayerSkin
 *///?}
+import java.net.URI
 import java.util.UUID
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.atomic.AtomicReference
@@ -50,6 +53,10 @@ object ClientPlatform {
         error.get()?.let { throw it }
         @Suppress("UNCHECKED_CAST")
         return result.get() as T
+    }
+
+    fun openUri(uri: String) {
+        Multithreading.submit { DesktopHelper.browse(URI(uri)) }
     }
 
     fun localPlayerUuid(): UUID = Minecraft.getInstance().user.profileId

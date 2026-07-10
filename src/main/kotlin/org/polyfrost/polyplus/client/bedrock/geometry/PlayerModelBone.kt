@@ -36,7 +36,9 @@ enum class PlayerModelBone(val serializedName: String) {
     }
 
     companion object {
-        private val BY_BEDROCK_NAME = entries.associateBy { it.serializedName }
+        private fun normalize(name: String): String = name.lowercase().replace("_", "")
+
+        private val BY_BEDROCK_NAME = entries.associateBy { normalize(it.serializedName) }
 
         private val MODEL_PART_ACCESSOR = mapOf(
             //? if >= 1.21.4 {
@@ -72,7 +74,7 @@ enum class PlayerModelBone(val serializedName: String) {
             LEFT_LEG to listOf(ROOT, LEFT_LEG),
         )
 
-        fun fromBedrockNameOrNull(name: String): PlayerModelBone? = BY_BEDROCK_NAME[name]
+        fun fromBedrockNameOrNull(name: String): PlayerModelBone? = BY_BEDROCK_NAME[normalize(name)]
 
         fun toModelOffset(bedrockPivot: Vector3f): Vector3f {
             return Vector3f(

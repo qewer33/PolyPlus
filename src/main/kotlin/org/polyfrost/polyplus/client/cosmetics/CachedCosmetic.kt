@@ -30,8 +30,8 @@ sealed interface CachedCosmetic {
                 /*val textureId = Identifier.fromNamespaceAndPath(
                     PolyPlusConstants.ID,
                     "cape/$hash",
-                )*/
-                //?}
+                )
+                *///?}
                 Minecraft.getInstance().textureManager.register(textureId, texture)
                 location = Identifier.fromNamespaceAndPath(
                     PolyPlusConstants.ID,

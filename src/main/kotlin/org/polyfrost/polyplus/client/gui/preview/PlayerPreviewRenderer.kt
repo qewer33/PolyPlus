@@ -6,7 +6,7 @@ import androidx.compose.ui.graphics.toComposeImageBitmap
 import org.jetbrains.skia.Image as SkiaImage
 import org.jetbrains.skia.ImageInfo
 import org.polyfrost.polyplus.client.cosmetics.CosmeticEquipment
-//? if >= 1.21.11 {
+//? if >= 1.21.8 {
 import com.mojang.blaze3d.ProjectionType
 import com.mojang.blaze3d.buffers.GpuBuffer
 import kotlinx.coroutines.launch
@@ -15,27 +15,100 @@ import com.mojang.blaze3d.platform.Lighting
 import com.mojang.blaze3d.systems.RenderSystem
 import com.mojang.blaze3d.vertex.PoseStack
 import net.minecraft.client.Minecraft
+//? if >= 1.21.10 {
 import net.minecraft.client.model.HumanoidModel
+//?}
 import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.client.player.AbstractClientPlayer
 import net.minecraft.client.player.RemotePlayer
 //? if < 26.1 {
 /*import net.minecraft.client.renderer.CachedOrthoProjectionMatrixBuffer
-import net.minecraft.client.renderer.state.CameraRenderState
+*///?}
+//? if >= 1.21.10 && < 26.1 {
+/*import net.minecraft.client.renderer.state.CameraRenderState
 *///?}
 //? if >= 26.1 {
 import net.minecraft.client.renderer.ProjectionMatrixBuffer
 import net.minecraft.client.renderer.state.level.CameraRenderState
 import org.joml.Matrix4f
 //?}
+//? if >= 1.21.10 {
 import net.minecraft.client.renderer.entity.state.AvatarRenderState
+//?} else {
+/*import net.minecraft.client.renderer.entity.state.PlayerRenderState as AvatarRenderState
+*///?}
 import net.minecraft.client.resources.DefaultPlayerSkin
+//? if >= 1.21.10 {
+import net.minecraft.core.ClientAsset
 import net.minecraft.world.entity.HumanoidArm
+//?}
+import net.minecraft.resources.Identifier
+//? if >= 1.21.10 {
 import net.minecraft.world.entity.player.PlayerSkin
+//?} else {
+/*import net.minecraft.client.resources.PlayerSkin
+*///?}
 import org.joml.Quaternionf
 import org.polyfrost.polyplus.client.cosmetics.access.PlayerCosmeticsAccess
 import org.polyfrost.polyplus.client.utils.ClientPlatform
 //?}
+//? if >= 1.21.1 && < 1.21.5 {
+/*import com.mojang.blaze3d.pipeline.TextureTarget
+import com.mojang.blaze3d.platform.Lighting
+import com.mojang.blaze3d.platform.NativeImage
+import com.mojang.blaze3d.systems.RenderSystem
+import com.mojang.blaze3d.vertex.PoseStack
+import net.minecraft.client.Minecraft
+import org.joml.Matrix4f
+import org.joml.Quaternionf
+import org.polyfrost.polyplus.client.cosmetics.access.PlayerCosmeticsAccess
+import org.polyfrost.polyplus.client.utils.ClientPlatform
+*///?}
+//? if >= 1.21.4 && < 1.21.5 {
+/*import com.mojang.blaze3d.ProjectionType
+import net.minecraft.client.renderer.entity.player.PlayerRenderer
+import net.minecraft.client.renderer.entity.state.PlayerRenderState
+import net.minecraft.client.resources.DefaultPlayerSkin
+import net.minecraft.client.resources.PlayerSkin
+*///?}
+//? if >= 1.21.1 && < 1.21.4 {
+/*import com.mojang.authlib.GameProfile
+import com.mojang.blaze3d.vertex.VertexSorting
+import kotlinx.coroutines.launch
+import net.minecraft.client.Camera
+import net.minecraft.client.multiplayer.ClientLevel
+import net.minecraft.client.multiplayer.ClientPacketListener
+import net.minecraft.client.multiplayer.PlayerInfo
+import net.minecraft.client.player.AbstractClientPlayer
+import net.minecraft.client.player.RemotePlayer
+import net.minecraft.client.resources.DefaultPlayerSkin
+import net.minecraft.client.resources.PlayerSkin
+import net.minecraft.core.Holder
+import net.minecraft.core.MappedRegistry
+import net.minecraft.core.Registry
+import net.minecraft.core.RegistryAccess
+import net.minecraft.core.RegistrySetBuilder
+import net.minecraft.core.registries.BuiltInRegistries
+import net.minecraft.core.registries.Registries
+import net.minecraft.data.worldgen.DimensionTypes
+import net.minecraft.resources.ResourceKey
+import net.minecraft.resources.ResourceLocation
+import net.minecraft.util.profiling.InactiveProfiler
+import net.minecraft.world.Difficulty
+import net.minecraft.world.damagesource.DamageScaling
+import net.minecraft.world.damagesource.DamageType
+import net.minecraft.world.damagesource.DamageTypes
+import net.minecraft.world.entity.player.PlayerModelPart
+import net.minecraft.world.level.Level
+import net.minecraft.world.level.biome.Biome
+import net.minecraft.world.level.biome.BiomeGenerationSettings
+import net.minecraft.world.level.biome.BiomeSpecialEffects
+import net.minecraft.world.level.biome.Biomes
+import net.minecraft.world.level.biome.MobSpawnSettings
+import net.minecraft.world.level.dimension.BuiltinDimensionTypes
+import net.minecraft.world.level.dimension.DimensionType
+import net.minecraft.world.phys.Vec3
+*///?}
 
 object PlayerPreviewRenderer {
     private val equipmentByEntityId = java.util.concurrent.ConcurrentHashMap<Int, CosmeticEquipment>()
@@ -43,8 +116,15 @@ object PlayerPreviewRenderer {
     @JvmStatic
     fun previewEquipment(entityId: Int): CosmeticEquipment? = equipmentByEntityId[entityId]
 
-    @Volatile
-    private var latest: ImageBitmap? = null
+    @JvmStatic
+    fun previewParticleColor(entityId: Int): Int? =
+        if (equipmentByEntityId.containsKey(entityId)) {
+            org.polyfrost.polyplus.client.cosmetics.CosmeticCatalog.getParticleColor(ClientPlatform.localPlayerUuid())
+        } else {
+            null
+        }
+
+    private val latestByKey = java.util.concurrent.ConcurrentHashMap<Any, ImageBitmap>()
 
     fun capture(
         source: PlayerPreviewSource,
@@ -54,31 +134,58 @@ object PlayerPreviewRenderer {
         heightPx: Int,
         modelScale: Float,
         verticalAnchor: Float,
+        key: Any = source,
     ): ImageBitmap? {
-        if (widthPx <= 0 || heightPx <= 0) return latest
-        //? if >= 1.21.11 {
+        if (widthPx <= 0 || heightPx <= 0) return latestByKey[key]
+        //? if >= 1.21.8 {
         val w = widthPx.coerceAtMost(MAX_DIM)
         val h = heightPx.coerceAtMost(MAX_DIM)
         ClientPlatform.runOnMain {
-            runCatching { renderAndReadback(source, yawDeg, pitchDeg, w, h, modelScale, verticalAnchor) }
+            runCatching { renderAndReadback(source, yawDeg, pitchDeg, w, h, modelScale, verticalAnchor, key) }
                 .onFailure { LOG.error("[preview] capture failed", it) }
         }
-        return latest
-        //?} else {
+        return latestByKey[key]
+        //?} elif >= 1.21.5 {
         /*return runCatching { testPattern(widthPx, heightPx, yawDeg) }.getOrNull()
+        *///?} else {
+        /*val w = widthPx.coerceAtMost(LEGACY_MAX_DIM)
+        val h = heightPx.coerceAtMost(LEGACY_MAX_DIM)
+        ClientPlatform.runOnMain {
+            runCatching { renderLegacy(source, yawDeg, w, h, modelScale, verticalAnchor, key) }
+                .onFailure { LEGACY_LOG.error("[preview] legacy capture failed", it) }
+        }
+        return latestByKey[key]
         *///?}
     }
 
     fun dispose() {
-        //? if >= 1.21.11 {
+        //? if >= 1.21.8 {
         val t = target
         target = null
-        latest = null
+        latestByKey.clear()
         if (t != null) ClientPlatform.runOnMain { runCatching { t.destroyBuffers() } }
         //?}
     }
 
-    //? if >= 1.21.11 {
+    private const val EDGE_FADE_FRACTION = 0.18f
+
+    private fun edgeFadeColumns(w: Int): FloatArray {
+        val cols = FloatArray(w)
+        val fadePx = w * EDGE_FADE_FRACTION
+        for (x in 0 until w) {
+            val d = minOf(x + 0.5f, w - 0.5f - x) // distance from nearest edge (pixel center)
+            val t = if (fadePx <= 0f) 1f else (d / fadePx).coerceIn(0f, 1f)
+            cols[x] = t * t * t * (t * (t * 6f - 15f) + 10f)
+        }
+        return cols
+    }
+
+    private fun scaleByte(v: Int, f: Float): Byte {
+        val s = (v * f).toInt()
+        return (if (s > 255) 255 else s).toByte()
+    }
+
+    //? if >= 1.21.8 {
     private val LOG = org.slf4j.LoggerFactory.getLogger("polyplus/preview")
     private const val MAX_DIM = 512
 
@@ -93,15 +200,23 @@ object PlayerPreviewRenderer {
     private fun orthoMatrix(w: Int, h: Int): Matrix4f =
         Matrix4f().setOrtho(0f, w.toFloat(), h.toFloat(), 0f, -1000f, 1000f)
     //?}
+    //? if >= 26.2 {
+    /*private fun orthoProjection(w: Int, h: Int): net.minecraft.client.renderer.Projection =
+        net.minecraft.client.renderer.Projection().apply { setupOrtho(-1000f, 1000f, w.toFloat(), h.toFloat(), true) }
+    *///?}
 
     private fun ensureTarget(w: Int, h: Int): TextureTarget {
         val existing = target
         if (existing != null && existing.width == w && existing.height == h) return existing
         existing?.destroyBuffers()
+        //? if >= 26.2 {
+        /*return TextureTarget("polyplus_player_preview", w, h, true, com.mojang.blaze3d.GpuFormat.RGBA8_UNORM).also { target = it }
+        *///?} else {
         return TextureTarget("polyplus_player_preview", w, h, true).also { target = it }
+        //?}
     }
 
-    private fun renderAndReadback(source: PlayerPreviewSource, yawDeg: Float, pitchDeg: Float, w: Int, h: Int, modelScale: Float, verticalAnchor: Float) {
+    private fun renderAndReadback(source: PlayerPreviewSource, yawDeg: Float, pitchDeg: Float, w: Int, h: Int, modelScale: Float, verticalAnchor: Float, key: Any) {
         val mc = Minecraft.getInstance()
         val fbo = ensureTarget(w, h)
         val colorTex = fbo.colorTexture ?: return
@@ -112,22 +227,43 @@ object PlayerPreviewRenderer {
         val savedLights = RenderSystem.getShaderLights()
         val savedFog = RenderSystem.getShaderFog()
 
+        //? if >= 26.2 {
+        /*RenderSystem.getDevice().createCommandEncoder()
+            .clearColorAndDepthTextures(colorTex, org.joml.Vector4f(0f, 0f, 0f, 0f), depthTex, 0.0)
+        *///?} else {
         RenderSystem.getDevice().createCommandEncoder()
             .clearColorAndDepthTextures(colorTex, 0x00000000, depthTex, 1.0)
+        //?}
         RenderSystem.backupProjectionMatrix()
         //? if < 26.1 {
         /*RenderSystem.setProjectionMatrix(projection.getBuffer(w.toFloat(), h.toFloat()), ProjectionType.ORTHOGRAPHIC)
         *///?}
+        //? if >= 26.2 {
+        /*RenderSystem.setProjectionMatrix(projection.getBuffer(orthoProjection(w, h)), ProjectionType.ORTHOGRAPHIC)
+        *///?} else {
         //? if >= 26.1 {
         RenderSystem.setProjectionMatrix(projection.getBuffer(orthoMatrix(w, h)), ProjectionType.ORTHOGRAPHIC)
         //?}
+        //?}
         RenderSystem.outputColorTextureOverride = colorView
         RenderSystem.outputDepthTextureOverride = depthView
+        //? if >= 26.2 {
+        /*val modelViewStack = RenderSystem.getModelViewStack()
+        modelViewStack.pushMatrix()
+        modelViewStack.identity()
+        *///?}
         try {
+            //? if >= 1.21.10 {
             val level = mc.level
             if (level != null) renderEntity(mc, level, source, yawDeg, w, h, modelScale, verticalAnchor)
             else renderDirect(mc, source, yawDeg, w, h, modelScale, verticalAnchor)
+            //?} else {
+            /*renderDirect(mc, source, yawDeg, w, h, modelScale, verticalAnchor)
+            *///?}
         } finally {
+            //? if >= 26.2 {
+            /*RenderSystem.getModelViewStack().popMatrix()
+            *///?}
             RenderSystem.outputColorTextureOverride = null
             RenderSystem.outputDepthTextureOverride = null
             RenderSystem.restoreProjectionMatrix()
@@ -135,9 +271,10 @@ object PlayerPreviewRenderer {
             savedFog?.let { RenderSystem.setShaderFog(it) }
         }
 
-        readback(colorTex, w, h)
+        readback(colorTex, w, h, key)
     }
 
+    //? if >= 1.21.10 {
     private fun renderEntity(mc: Minecraft, level: ClientLevel, source: PlayerPreviewSource, yawDeg: Float, w: Int, h: Int, modelScale: Float, verticalAnchor: Float) {
         val player = dummy(mc, level) ?: return
         bindEquipment(player, source)
@@ -147,7 +284,9 @@ object PlayerPreviewRenderer {
         player.setXRot(0f); player.xRotO = 0f
         val state = mc.entityRenderDispatcher.extractEntity(player, 1.0f) as? AvatarRenderState ?: return
         state.lightCoords = 0xF000F0
-        state.bodyRot = 180f + yawDeg
+        state.showCape = true
+        capeOverride(source)?.let { state.skin = withCape(state.skin, it) }
+        state.bodyRot = yawDeg
         state.yRot = 0f
         state.xRot = 0f
         val bbH = state.boundingBoxHeight / state.scale
@@ -158,11 +297,15 @@ object PlayerPreviewRenderer {
         val scale = h * modelScale
         val pose = PoseStack()
         pose.translate(w / 2f, h * verticalAnchor, 0f)
-        pose.scale(scale, scale, scale)
+        pose.scale(scale, scale, -scale)
         pose.translate(0f, bbH / 2f, 0f)
         pose.mulPose(Quaternionf().rotateZ(Math.PI.toFloat()))
 
+        //? if >= 26.2 {
+        /*mc.gameRenderer.lighting().setupFor(Lighting.Entry.ENTITY_IN_UI)
+        *///?} else {
         mc.gameRenderer.lighting.setupFor(Lighting.Entry.ENTITY_IN_UI)
+        //?}
         val camera = CameraRenderState().apply {
             orientation = Quaternionf().rotateY(Math.PI.toFloat())
             pos = net.minecraft.world.phys.Vec3.ZERO
@@ -170,14 +313,23 @@ object PlayerPreviewRenderer {
             /*entityPos = net.minecraft.world.phys.Vec3.ZERO
             *///?}
         }
+        //? if >= 26.2 {
+        /*val features = mc.gameRenderer.featureRenderDispatcher()
+        val submitStorage = net.minecraft.client.renderer.SubmitNodeStorage()
+        mc.entityRenderDispatcher.submit(state, camera, 0.0, 0.0, 0.0, pose, submitStorage)
+        features.renderAllFeatures(submitStorage)
+        *///?} else {
         val features = mc.gameRenderer.featureRenderDispatcher
         mc.entityRenderDispatcher.submit(state, camera, 0.0, 0.0, 0.0, pose, features.submitNodeStorage)
         features.renderAllFeatures()
         mc.renderBuffers().bufferSource().endBatch()
+        //?}
     }
+    //?}
 
     private fun renderDirect(mc: Minecraft, source: PlayerPreviewSource, yawDeg: Float, w: Int, h: Int, modelScale: Float, verticalAnchor: Float) {
-        val skin = localSkin(mc) ?: return
+        val baseSkin = localSkin(mc) ?: return
+        val skin = capeOverride(source)?.let { withCape(baseSkin, it) } ?: baseSkin
         val equipment = when (source) {
             is PlayerPreviewSource.Override -> source.equipment
             PlayerPreviewSource.LocalLive -> localEquipment()
@@ -186,7 +338,11 @@ object PlayerPreviewRenderer {
 
         val state = directState(skin)
         state.id = PREVIEW_ENTITY_ID
-        state.bodyRot = 180f + yawDeg
+        //? if >= 1.21.10 {
+        state.bodyRot = yawDeg
+        //?} else {
+        /*state.bodyRot = yawDeg + 180f // no CameraRenderState flip on render(state); turn body to camera
+        *///?}
         state.boundingBoxWidth = PLAYER_BB_WIDTH
         state.boundingBoxHeight = PLAYER_BB_HEIGHT
         state.scale = 1f
@@ -195,11 +351,16 @@ object PlayerPreviewRenderer {
         val scale = h * modelScale
         val pose = PoseStack()
         pose.translate(w / 2f, h * verticalAnchor, 0f)
-        pose.scale(scale, scale, scale)
+        pose.scale(scale, scale, -scale)
         pose.translate(0f, bbH / 2f, 0f)
         pose.mulPose(Quaternionf().rotateZ(Math.PI.toFloat()))
 
+        //? if >= 26.2 {
+        /*mc.gameRenderer.lighting().setupFor(Lighting.Entry.ENTITY_IN_UI)
+        *///?} else {
         mc.gameRenderer.lighting.setupFor(Lighting.Entry.ENTITY_IN_UI)
+        //?}
+        //? if >= 1.21.10 {
         val camera = CameraRenderState().apply {
             orientation = Quaternionf().rotateY(Math.PI.toFloat())
             pos = net.minecraft.world.phys.Vec3.ZERO
@@ -207,19 +368,44 @@ object PlayerPreviewRenderer {
             /*entityPos = net.minecraft.world.phys.Vec3.ZERO
             *///?}
         }
+        //? if >= 26.2 {
+        /*val features = mc.gameRenderer.featureRenderDispatcher()
+        val submitStorage = net.minecraft.client.renderer.SubmitNodeStorage()
+        mc.entityRenderDispatcher.submit(state, camera, 0.0, 0.0, 0.0, pose, submitStorage)
+        features.renderAllFeatures(submitStorage)
+        *///?} else {
         val features = mc.gameRenderer.featureRenderDispatcher
         mc.entityRenderDispatcher.submit(state, camera, 0.0, 0.0, 0.0, pose, features.submitNodeStorage)
         features.renderAllFeatures()
         mc.renderBuffers().bufferSource().endBatch()
+        //?}
+        //?} else {
+        /*val bufferSource = mc.renderBuffers().bufferSource()
+        // render(state,…) draws a ground shadow that dereferences mc.level → NPE off-world.
+        mc.entityRenderDispatcher.setRenderShadow(false)
+        try {
+            mc.entityRenderDispatcher.render(state, 0.0, 0.0, 0.0, pose, bufferSource, 0xF000F0)
+            bufferSource.endBatch()
+        } finally {
+            mc.entityRenderDispatcher.setRenderShadow(true)
+        }
+        *///?}
     }
 
     private val loadAttempted = java.util.Collections.newSetFromMap(java.util.concurrent.ConcurrentHashMap<Int, Boolean>())
 
+    private var cachedLocalEquipment: CosmeticEquipment? = null
+    private var cachedLocalKey: List<String>? = null
+
     private fun localEquipment(): CosmeticEquipment {
         val ids = org.polyfrost.polyplus.client.cosmetics.CosmeticCatalog.localEquipped().ids()
+        val resolved = ids.map { id -> org.polyfrost.polyplus.client.cosmetics.CosmeticAssetCache.getAttachedCosmetic(id) }
+        val key = ids.mapIndexed { i, id -> if (resolved[i] != null) "$id" else "$id:pending" }
+        cachedLocalEquipment?.let { if (cachedLocalKey == key) return it }
+
         val equipment = CosmeticEquipment()
-        for (id in ids) {
-            val attached = org.polyfrost.polyplus.client.cosmetics.CosmeticAssetCache.getAttachedCosmetic(id)
+        ids.forEachIndexed { i, id ->
+            val attached = resolved[i]
             if (attached != null) {
                 equipment.equip(attached)
             } else if (loadAttempted.add(id)) {
@@ -228,15 +414,37 @@ object PlayerPreviewRenderer {
                 }
             }
         }
+        cachedLocalEquipment = equipment
+        cachedLocalKey = key
         return equipment
     }
 
+    private fun capeOverride(source: PlayerPreviewSource): Identifier? =
+        (source as? PlayerPreviewSource.Override)?.capeTexture
+
+    //? if >= 1.21.10 {
+    private fun withCape(skin: PlayerSkin, cape: Identifier): PlayerSkin =
+        PlayerSkin(skin.body(), ClientAsset.ResourceTexture(cape), skin.elytra(), skin.model(), skin.secure())
+    //?} else {
+    /*private fun withCape(skin: PlayerSkin, cape: Identifier): PlayerSkin =
+        PlayerSkin(skin.texture(), skin.textureUrl(), cape, skin.elytraTexture(), skin.model(), skin.secure())
+    *///?}
+
+    //? if >= 1.21.10 {
     private fun localSkin(mc: Minecraft): PlayerSkin? {
         val profile = mc.gameProfile
         return runCatching { mc.skinManager.createLookup(profile, false).get() }.getOrNull()
             ?: runCatching { DefaultPlayerSkin.get(profile) }.getOrNull()
     }
+    //?} else {
+    /*private fun localSkin(mc: Minecraft): PlayerSkin? {
+        val profile = mc.gameProfile
+        return runCatching { mc.skinManager.getInsecureSkin(profile) }.getOrNull()
+            ?: runCatching { DefaultPlayerSkin.get(profile) }.getOrNull()
+    }
+    *///?}
 
+    //? if >= 1.21.10 {
     private fun directState(skin: PlayerSkin): AvatarRenderState = AvatarRenderState().apply {
         (this as? org.polyfrost.polyplus.client.cosmetics.access.AvatarEmoteRenderAccess)
             ?.`polyplus$bindEmoteController`(org.polyfrost.polyplus.client.emotes.playback.EmoteController())
@@ -250,12 +458,29 @@ object PlayerPreviewRenderer {
         showRightSleeve = true
         showLeftPants = true
         showRightPants = true
-        showCape = false
+        showCape = true
         lightCoords = 0xF000F0
         yRot = 0f
         xRot = 0f
         ageInTicks = (System.nanoTime() / 50_000_000L).toFloat()
     }
+    //?} else {
+    /*private fun directState(skin: PlayerSkin): AvatarRenderState = AvatarRenderState().apply {
+        (this as? org.polyfrost.polyplus.client.cosmetics.access.AvatarEmoteRenderAccess)
+            ?.`polyplus$bindEmoteController`(org.polyfrost.polyplus.client.emotes.playback.EmoteController())
+        this.skin = skin
+        showHat = true
+        showJacket = true
+        showLeftSleeve = true
+        showRightSleeve = true
+        showLeftPants = true
+        showRightPants = true
+        showCape = true
+        yRot = 0f
+        xRot = 0f
+        ageInTicks = (System.nanoTime() / 50_000_000L).toFloat()
+    }
+    *///?}
 
     private const val PREVIEW_ENTITY_ID = Int.MIN_VALUE + 1
 
@@ -264,7 +489,10 @@ object PlayerPreviewRenderer {
 
     private fun dummy(mc: Minecraft, level: ClientLevel): AbstractClientPlayer? {
         dummy?.let { return it }
-        return runCatching { RemotePlayer(level, mc.gameProfile) }.getOrNull()?.also { dummy = it }
+        return runCatching { RemotePlayer(level, mc.gameProfile) }.getOrNull()?.also {
+            it.id = PREVIEW_ENTITY_ID
+            dummy = it
+        }
     }
 
     private fun bindEquipment(player: AbstractClientPlayer, source: PlayerPreviewSource) {
@@ -276,16 +504,30 @@ object PlayerPreviewRenderer {
         equipmentByEntityId[player.id] = equipment
     }
 
-    private fun readback(colorTex: com.mojang.blaze3d.textures.GpuTexture, w: Int, h: Int) {
+    private fun readback(colorTex: com.mojang.blaze3d.textures.GpuTexture, w: Int, h: Int, key: Any) {
         val device = RenderSystem.getDevice()
+        //? if >= 26.2 {
+        /*val pixelSize = colorTex.format.blockSize()
+        *///?} else {
         val pixelSize = colorTex.format.pixelSize()
+        //?}
+        //? if >= 1.21.11 {
         val size = w.toLong() * h.toLong() * pixelSize
+        val offset = 0L
+        //?} else {
+        /*val size = w * h * pixelSize
+        val offset = 0
+        *///?}
         val buffer = device.createBuffer({ "polyplus_preview_readback" }, GpuBuffer.USAGE_MAP_READ or GpuBuffer.USAGE_COPY_DST, size)
-        device.createCommandEncoder().copyTextureToBuffer(colorTex, buffer, 0L, Runnable {
+        device.createCommandEncoder().copyTextureToBuffer(colorTex, buffer, offset, Runnable {
             runCatching {
+                //? if >= 26.2 {
+                /*val mapped = buffer.map(true, false)
+                *///?} else {
                 val mapped = RenderSystem.getDevice().createCommandEncoder().mapBuffer(buffer, true, false)
+                //?}
                 try {
-                    latest = toImageBitmap(mapped.data(), w, h, pixelSize)
+                    latestByKey[key] = toImageBitmap(mapped.data(), w, h, pixelSize)
                 } finally {
                     mapped.close()
                 }
@@ -294,36 +536,28 @@ object PlayerPreviewRenderer {
         }, 0)
     }
 
-    private const val BRIGHTNESS_GAIN = 1.6f
-
     private fun toImageBitmap(data: java.nio.ByteBuffer, w: Int, h: Int, pixelSize: Int): ImageBitmap {
         val out = ByteArray(w * h * 4)
+        val fade = edgeFadeColumns(w)
         for (y in 0 until h) {
             val dstRow = (h - 1 - y) * w
             val srcRow = y * w
             for (x in 0 until w) {
                 val si = (srcRow + x) * pixelSize
-                val a = data.get(si + 3)
                 val di = (dstRow + x) * 4
-                out[di] = gain(data.get(si + 2))
-                out[di + 1] = gain(data.get(si + 1))
-                out[di + 2] = gain(data.get(si))
-                out[di + 3] = a
+                val f = fade[x]
+                out[di] = scaleByte(data.get(si + 2).toInt() and 0xFF, f)
+                out[di + 1] = scaleByte(data.get(si + 1).toInt() and 0xFF, f)
+                out[di + 2] = scaleByte(data.get(si).toInt() and 0xFF, f)
+                out[di + 3] = scaleByte(data.get(si + 3).toInt() and 0xFF, f)
             }
         }
         return SkiaImage.makeRaster(ImageInfo.makeN32Premul(w, h), out, w * 4).toComposeImageBitmap()
     }
 
-    private fun gain(v: Byte): Byte {
-        val scaled = ((v.toInt() and 0xFF) * BRIGHTNESS_GAIN).toInt()
-        return (if (scaled > 255) 255 else scaled).toByte()
-    }
-
-    private var tick = 0
-    private fun logTick(): Boolean { tick++; return tick % 120 == 0 }
     //?}
 
-    //? if < 1.21.11 {
+    //? if >= 1.21.5 && < 1.21.8 {
     /*private fun testPattern(w: Int, h: Int, yawDeg: Float): ImageBitmap {
         val bytes = ByteArray(w * h * 4)
         for (i in bytes.indices step 4) {
@@ -331,5 +565,355 @@ object PlayerPreviewRenderer {
         }
         return SkiaImage.makeRaster(ImageInfo.makeN32Premul(w, h), bytes, w * 4).toComposeImageBitmap()
     }*///?}
+
+    //? if >= 1.21.1 && < 1.21.5 {
+    /*private val LEGACY_LOG = org.slf4j.LoggerFactory.getLogger("polyplus/preview")
+    private const val LEGACY_MAX_DIM = 512
+    private const val LEGACY_PREVIEW_ENTITY_ID = Int.MIN_VALUE + 1
+    private var legacyTarget: TextureTarget? = null
+    //? if < 1.21.4 {
+    /*private var legacyDummy: PreviewRemotePlayer? = null
+    *///?}
+
+    private fun ensureLegacyTarget(w: Int, h: Int): TextureTarget {
+        val existing = legacyTarget
+        if (existing != null && existing.width == w && existing.height == h) return existing
+        existing?.destroyBuffers()
+        //? if >= 1.21.4 {
+        return TextureTarget(w, h, true).also { legacyTarget = it }
+        //?}
+        //? if < 1.21.4 {
+        /*return TextureTarget(w, h, true, Minecraft.ON_OSX).also { legacyTarget = it }
+        *///?}
+    }
+
+    //? if < 1.21.4 {
+    /*// Rebuild when the backing level changes (live world <-> standalone preview level) so
+    private fun legacyDummy(mc: Minecraft, level: ClientLevel): PreviewRemotePlayer? {
+        legacyDummy?.let { if (it.level() === level) return it }
+        return runCatching { PreviewRemotePlayer(level, mc.gameProfile) }.getOrNull()?.also {
+            it.id = LEGACY_PREVIEW_ENTITY_ID
+            legacyDummy = it
+        }
+    }
+
+    private class PreviewRemotePlayer(level: ClientLevel, profile: GameProfile) : RemotePlayer(level, profile) {
+        @JvmField var skinOverride: PlayerSkin? = null
+        override fun getSkin(): PlayerSkin = skinOverride ?: DefaultPlayerSkin.get(uuid)
+        override fun isSpectator(): Boolean = false
+        override fun isCreative(): Boolean = false
+        override fun getPlayerInfo(): PlayerInfo? = null
+        override fun isModelPartShown(part: PlayerModelPart): Boolean = true
+    }
+
+    private object PreviewWorld {
+        private var cached: ClientLevel? = null
+        private var cachedCamera: Camera? = null
+
+        fun level(): ClientLevel? {
+            cached?.let { return it }
+            return runCatching { build() }
+                .onFailure { LEGACY_LOG.error("[preview] standalone level build failed", it) }
+                .getOrNull()?.also { cached = it }
+        }
+
+        fun camera(): Camera {
+            cachedCamera?.let { return it }
+            val unsafe = UNSAFE
+            val cam = unsafe.allocateInstance(Camera::class.java) as Camera
+            val field = Camera::class.java.getDeclaredField("position")
+            unsafe.putObject(cam, unsafe.objectFieldOffset(field), Vec3(0.0, 1.0E9, 0.0))
+            cachedCamera = cam
+            return cam
+        }
+
+        private fun build(): ClientLevel {
+            val mc = Minecraft.getInstance()
+            val frozen = RegistryAccess.fromRegistryOfRegistries(BuiltInRegistries.REGISTRY)
+            val registries = PreviewRegistryAccess(
+                frozen,
+                mapOf(
+                    Registries.DAMAGE_TYPE to damageRegistry(),
+                    Registries.BIOME to biomeRegistry(),
+                ),
+            )
+            val dimHolder: Holder<DimensionType> = RegistrySetBuilder()
+                .add(Registries.DIMENSION_TYPE, DimensionTypes::bootstrap)
+                .build(frozen)
+                .lookupOrThrow(Registries.DIMENSION_TYPE)
+                .getOrThrow(BuiltinDimensionTypes.OVERWORLD)
+            val data = ClientLevel.ClientLevelData(Difficulty.NORMAL, false, true)
+            return ClientLevel(
+                stubConnection(registries), data, Level.OVERWORLD, dimHolder, 2, 2,
+                { InactiveProfiler.INSTANCE }, mc.levelRenderer, false, 0L,
+            )
+        }
+
+        private fun damageRegistry(): Registry<DamageType> {
+            val registry = MappedRegistry(Registries.DAMAGE_TYPE, com.mojang.serialization.Lifecycle.stable())
+            for (field in DamageTypes::class.java.declaredFields) {
+                if (!java.lang.reflect.Modifier.isStatic(field.modifiers)) continue
+                if (!ResourceKey::class.java.isAssignableFrom(field.type)) continue
+                @Suppress("UNCHECKED_CAST")
+                val key = field.get(null) as ResourceKey<DamageType>
+                Registry.register(registry, key, DamageType(key.location().path, DamageScaling.NEVER, 0f))
+            }
+            registry.freeze()
+            return registry
+        }
+
+        private fun biomeRegistry(): Registry<Biome> {
+            val registry = MappedRegistry(Registries.BIOME, com.mojang.serialization.Lifecycle.stable())
+            val biome = Biome.BiomeBuilder()
+                .hasPrecipitation(false)
+                .temperature(0.8f)
+                .downfall(0.4f)
+                .specialEffects(
+                    BiomeSpecialEffects.Builder()
+                        .fogColor(0xC0D8FF).waterColor(0x3F76E4).waterFogColor(0x050533).skyColor(0x78A7FF)
+                        .build(),
+                )
+                .mobSpawnSettings(MobSpawnSettings.EMPTY)
+                .generationSettings(BiomeGenerationSettings.EMPTY)
+                .build()
+            Registry.register(registry, Biomes.PLAINS, biome)
+            registry.freeze()
+            return registry
+        }
+
+        private fun stubConnection(registries: RegistryAccess.Frozen): ClientPacketListener {
+            val unsafe = UNSAFE
+            val stub = unsafe.allocateInstance(ClientPacketListener::class.java) as ClientPacketListener
+            val field = ClientPacketListener::class.java.getDeclaredField("registryAccess")
+            unsafe.putObject(stub, unsafe.objectFieldOffset(field), registries)
+            return stub
+        }
+    }
+
+    private class PreviewRegistryAccess(
+        private val base: RegistryAccess.Frozen,
+        private val overrides: Map<ResourceKey<*>, Registry<*>>,
+    ) : RegistryAccess.Frozen {
+        override fun <E> registry(key: ResourceKey<out Registry<out E>>): java.util.Optional<Registry<E>> {
+            overrides[key]?.let {
+                @Suppress("UNCHECKED_CAST")
+                return java.util.Optional.of(it as Registry<E>)
+            }
+            return base.registry(key)
+        }
+
+        override fun registries(): java.util.stream.Stream<RegistryAccess.RegistryEntry<*>> = base.registries()
+    }
+
+    private val UNSAFE: sun.misc.Unsafe by lazy {
+        val f = sun.misc.Unsafe::class.java.getDeclaredField("theUnsafe")
+        f.isAccessible = true
+        f.get(null) as sun.misc.Unsafe
+    }
+
+    private fun capeOverrideLegacy(source: PlayerPreviewSource): ResourceLocation? =
+        (source as? PlayerPreviewSource.Override)?.capeTexture
+
+    private fun withCapeLegacy(skin: PlayerSkin, cape: ResourceLocation): PlayerSkin =
+        PlayerSkin(skin.texture(), skin.textureUrl(), cape, skin.elytraTexture(), skin.model(), skin.secure())
+
+    private fun bindLegacyEquipment(player: AbstractClientPlayer, source: PlayerPreviewSource) {
+        val equipment = when (source) {
+            is PlayerPreviewSource.Override -> source.equipment
+            // Off-world (main menu) mc.player is null, so fall back to the catalog's locally
+            // equipped set — otherwise cosmetics wouldn't render on the preview there.
+            PlayerPreviewSource.LocalLive ->
+                (Minecraft.getInstance().player as? PlayerCosmeticsAccess)?.`polyplus$cosmeticEquipment`()
+                    ?: legacyLocalEquipment()
+        } ?: return
+        equipmentByEntityId[player.id] = equipment
+    }
+
+    private val legacyLoadAttempted =
+        java.util.Collections.newSetFromMap(java.util.concurrent.ConcurrentHashMap<Int, Boolean>())
+
+    private var cachedLegacyEquipment: CosmeticEquipment? = null
+    private var cachedLegacyKey: List<String>? = null
+
+    private fun legacyLocalEquipment(): CosmeticEquipment {
+        val ids = org.polyfrost.polyplus.client.cosmetics.CosmeticCatalog.localEquipped().ids()
+        val resolved = ids.map { id -> org.polyfrost.polyplus.client.cosmetics.CosmeticAssetCache.getAttachedCosmetic(id) }
+        val key = ids.mapIndexed { i, id -> if (resolved[i] != null) "$id" else "$id:pending" }
+        cachedLegacyEquipment?.let { if (cachedLegacyKey == key) return it }
+
+        val equipment = CosmeticEquipment()
+        ids.forEachIndexed { i, id ->
+            val attached = resolved[i]
+            if (attached != null) {
+                equipment.equip(attached)
+            } else if (legacyLoadAttempted.add(id)) {
+                org.polyfrost.polyplus.client.PolyPlusClient.SCOPE.launch {
+                    runCatching { org.polyfrost.polyplus.client.cosmetics.CosmeticAssetCache.ensureCosmeticLoaded(id) }
+                }
+            }
+        }
+        cachedLegacyEquipment = equipment
+        cachedLegacyKey = key
+        return equipment
+    }
+    *///?}
+
+    //? if >= 1.21.4 {
+    private fun legacySkin(mc: Minecraft): PlayerSkin? {
+        val profile = mc.gameProfile
+        return runCatching { mc.skinManager.getInsecureSkin(profile) }.getOrNull()
+            ?: runCatching { DefaultPlayerSkin.get(profile) }.getOrNull()
+    }
+
+    private fun legacyPlayerRenderer(mc: Minecraft, skin: PlayerSkin): PlayerRenderer? {
+        val map = (mc.entityRenderDispatcher as org.polyfrost.polyplus.mixin.client.cosmetics.EntityRenderDispatcherPlayerAccessor)
+            .`polyplus$playerRenderers`()
+        return (map[skin.model()] ?: map.values.firstOrNull()) as? PlayerRenderer
+    }
+
+    private fun legacyState(skin: PlayerSkin, yawDeg: Float): PlayerRenderState = PlayerRenderState().apply {
+        (this as? org.polyfrost.polyplus.client.cosmetics.access.AvatarEmoteRenderAccess)
+            ?.`polyplus$bindEmoteController`(org.polyfrost.polyplus.client.emotes.playback.EmoteController())
+        this.skin = skin
+        showHat = true
+        showJacket = true
+        showLeftSleeve = true
+        showRightSleeve = true
+        showLeftPants = true
+        showRightPants = true
+        showCape = true
+        id = LEGACY_PREVIEW_ENTITY_ID
+        bodyRot = yawDeg + 180f
+        yRot = 0f
+        xRot = 0f
+        scale = 1f
+        boundingBoxWidth = 0.6f
+        boundingBoxHeight = 1.8f
+        ageInTicks = (System.nanoTime() / 50_000_000L).toFloat()
+    }
+    //?}
+
+    private fun renderLegacy(source: PlayerPreviewSource, yawDeg: Float, w: Int, h: Int, modelScale: Float, verticalAnchor: Float, key: Any) {
+        val mc = Minecraft.getInstance()
+
+        //? if >= 1.21.4 {
+        val skin = legacySkin(mc) ?: return
+        val equipment = when (source) {
+            is PlayerPreviewSource.Override -> source.equipment
+            PlayerPreviewSource.LocalLive ->
+                (mc.player as? PlayerCosmeticsAccess)?.`polyplus$cosmeticEquipment`() ?: CosmeticEquipment()
+        }
+        equipmentByEntityId[LEGACY_PREVIEW_ENTITY_ID] = equipment
+        val state = legacyState(skin, yawDeg)
+        val renderer = legacyPlayerRenderer(mc, skin) ?: return
+        //?}
+        //? if < 1.21.4 {
+        /*// 1.21.1 has no render states: it must render a real entity, which needs a client
+        val level = mc.level ?: PreviewWorld.level() ?: return
+        val skin = mc.skinManager.getInsecureSkin(mc.gameProfile) ?: DefaultPlayerSkin.get(mc.gameProfile)
+        val player = legacyDummy(mc, level) ?: return
+        val cape = capeOverrideLegacy(source)
+            ?: org.polyfrost.polyplus.client.cosmetics.CosmeticAssetCache.getCapeTexture(mc.gameProfile.id)
+        player.skinOverride = cape?.let { withCapeLegacy(skin, it) } ?: skin
+        bindLegacyEquipment(player, source)
+        player.setYRot(0f); player.yRotO = 0f
+        player.yBodyRot = yawDeg; player.yBodyRotO = yawDeg
+        player.yHeadRot = yawDeg; player.yHeadRotO = yawDeg
+        player.setXRot(0f); player.xRotO = 0f
+        player.setPos(0.0, 0.0, 0.0)
+        player.xo = 0.0; player.yo = 0.0; player.zo = 0.0
+        player.xCloak = 0.0; player.yCloak = 0.0; player.zCloak = 0.0
+        player.xCloakO = 0.0; player.yCloakO = 0.0; player.zCloakO = 0.0
+        *///?}
+
+        val fbo = ensureLegacyTarget(w, h)
+        fbo.setClearColor(0f, 0f, 0f, 0f)
+        //? if >= 1.21.4 {
+        fbo.clear()
+        //?}
+        //? if < 1.21.4 {
+        /*fbo.clear(Minecraft.ON_OSX)
+        *///?}
+        fbo.bindWrite(true)
+
+        RenderSystem.backupProjectionMatrix()
+        val ortho = Matrix4f().setOrtho(0f, w.toFloat(), h.toFloat(), 0f, -1000f, 1000f)
+        //? if >= 1.21.4 {
+        RenderSystem.setProjectionMatrix(ortho, ProjectionType.ORTHOGRAPHIC)
+        //?}
+        //? if < 1.21.4 {
+        /*RenderSystem.setProjectionMatrix(ortho, VertexSorting.ORTHOGRAPHIC_Z)
+        *///?}
+
+        val bbH = 1.8f
+        val scale = h * modelScale
+        val pose = PoseStack()
+        pose.translate(w / 2f, h * verticalAnchor, 0f)
+        pose.scale(scale, scale, -scale)
+        pose.translate(0f, bbH / 2f, 0f)
+        pose.mulPose(Quaternionf().rotateZ(Math.PI.toFloat()))
+
+        Lighting.setupForEntityInInventory()
+        val dispatcher = mc.entityRenderDispatcher
+        dispatcher.setRenderShadow(false)
+        val bufferSource = mc.renderBuffers().bufferSource()
+        //? if < 1.21.4 {
+        /*val prevCamera = dispatcher.camera
+        *///?}
+        try {
+            //? if >= 1.21.4 {
+            renderer.render(state, pose, bufferSource, 0xF000F0)
+            //?}
+            //? if < 1.21.4 {
+            /*// Always swap in the far-away stand-in camera (not only off-world): in a live
+            dispatcher.camera = PreviewWorld.camera()
+            dispatcher.overrideCameraOrientation(Quaternionf().rotateY(Math.PI.toFloat()))
+            dispatcher.render(player, 0.0, 0.0, 0.0, 0f, 1f, pose, bufferSource, 0xF000F0)
+            *///?}
+            bufferSource.endBatch()
+        } finally {
+            dispatcher.setRenderShadow(true)
+            //? if < 1.21.4 {
+            /*dispatcher.camera = prevCamera
+            *///?}
+            RenderSystem.restoreProjectionMatrix()
+            fbo.unbindWrite()
+            mc.mainRenderTarget.bindWrite(true)
+        }
+
+        readbackLegacy(fbo, w, h, key)
+    }
+
+    private fun readbackLegacy(fbo: TextureTarget, w: Int, h: Int, key: Any) {
+        fbo.bindRead()
+        val img = NativeImage(w, h, false)
+        img.downloadTexture(0, false)
+        fbo.unbindRead()
+        try {
+            val out = ByteArray(w * h * 4)
+            val fade = edgeFadeColumns(w)
+            for (y in 0 until h) {
+                val dstRow = (h - 1 - y) * w
+                for (x in 0 until w) {
+                    //? if >= 1.21.4 {
+                    val px = img.getPixel(x, y)
+                    //?}
+                    //? if < 1.21.4 {
+                    /*val px = img.getPixelRGBA(x, y)
+                    *///?}
+                    val di = (dstRow + x) * 4
+                    val f = fade[x]
+                    out[di] = scaleByte((px ushr 16) and 0xFF, f)
+                    out[di + 1] = scaleByte((px ushr 8) and 0xFF, f)
+                    out[di + 2] = scaleByte(px and 0xFF, f)
+                    out[di + 3] = scaleByte((px ushr 24) and 0xFF, f)
+                }
+            }
+            latestByKey[key] = SkiaImage.makeRaster(ImageInfo.makeN32Premul(w, h), out, w * 4).toComposeImageBitmap()
+        } finally {
+            img.close()
+        }
+    }
+    *///?}
 }
 //?}

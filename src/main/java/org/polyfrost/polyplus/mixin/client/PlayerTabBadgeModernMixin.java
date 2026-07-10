@@ -1,11 +1,11 @@
-//? if >= 1.21.8 && < 26.1 {
-/*package org.polyfrost.polyplus.mixin.client;
+//? if >= 26.1 {
+package org.polyfrost.polyplus.mixin.client;
 
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.llamalad7.mixinextras.sugar.Local;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.PlayerTabOverlay;
 import net.minecraft.client.multiplayer.PlayerInfo;
 import net.minecraft.network.chat.Component;
@@ -16,16 +16,16 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 
 @Mixin(PlayerTabOverlay.class)
-public class PlayerTabBadgeMixin {
+public class PlayerTabBadgeModernMixin {
     @WrapOperation(
-        method = "render",
+        method = "extractRenderState",
         at = @At(
             value = "INVOKE",
-            target = "Lnet/minecraft/client/gui/GuiGraphics;drawString(Lnet/minecraft/client/gui/Font;Lnet/minecraft/network/chat/Component;III)V"
+            target = "Lnet/minecraft/client/gui/GuiGraphicsExtractor;text(Lnet/minecraft/client/gui/Font;Lnet/minecraft/network/chat/Component;III)V"
         )
     )
     private void polyplus$tabBadge(
-        GuiGraphics graphics,
+        GuiGraphicsExtractor graphics,
         Font font,
         Component name,
         int x,
@@ -43,7 +43,7 @@ public class PlayerTabBadgeMixin {
     }
 
     @WrapOperation(
-        method = "render",
+        method = "extractRenderState",
         at = @At(
             value = "INVOKE",
             target = "Lnet/minecraft/client/gui/Font;width(Lnet/minecraft/network/chat/FormattedText;)I",
@@ -63,4 +63,4 @@ public class PlayerTabBadgeMixin {
         return width;
     }
 }
-*///?}
+//?}

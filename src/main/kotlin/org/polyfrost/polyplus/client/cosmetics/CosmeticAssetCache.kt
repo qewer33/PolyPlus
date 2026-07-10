@@ -49,6 +49,8 @@ object CosmeticAssetCache {
         return capes[id]?.asResource()
     }
 
+    fun getCapeResource(id: Int): Identifier? = capes[id]?.asResource()
+
     //? if >= 1.21.1 {
     fun getEmote(emoteId: Int): Emote? = emotesById[emoteId]
 

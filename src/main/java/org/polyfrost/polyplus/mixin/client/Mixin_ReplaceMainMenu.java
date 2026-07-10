@@ -13,10 +13,17 @@ public class Mixin_ReplaceMainMenu {
     @Inject(method = "init", at = @At("HEAD"), cancellable = true)
     private void polyplus$replaceMainMenu(CallbackInfo ci) {
         Minecraft mc = Minecraft.getInstance();
+        //? if >= 26.2 {
+        /*if (mc.gui.screen() instanceof PolyPlusMainMenuScreen) {
+            return;
+        }
+        mc.gui.setScreen(new PolyPlusMainMenuScreen());
+        *///?} else {
         if (mc.screen instanceof PolyPlusMainMenuScreen) {
             return;
         }
         mc.setScreen(new PolyPlusMainMenuScreen());
+        //?}
         ci.cancel();
     }
 }

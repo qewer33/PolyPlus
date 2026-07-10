@@ -12,7 +12,7 @@ fun BufferedImage.toNativeImage(): NativeImage {
             //? if >= 1.21.4
             native.setPixel(x, y, argb)
             //? if < 1.21.4
-            /*native.setPixelRGBA(x, y, argb.toAbgr())*/
+            //native.setPixelRGBA(x, y, argb.toAbgr())
         }
     }
     return native

@@ -48,10 +48,18 @@ object PolyPlusCommands {
             .then(commands.literal("mainmenu").executes { _ ->
                 val client = net.minecraft.client.Minecraft.getInstance()
                 if (client.isSameThread) {
+                    //? if >= 26.2 {
+                    /*client.gui.setScreen(org.polyfrost.polyplus.client.gui.PolyPlusMainMenuScreen())
+                    *///?} else {
                     client.setScreen(org.polyfrost.polyplus.client.gui.PolyPlusMainMenuScreen())
+                    //?}
                 } else {
                     client.execute {
+                        //? if >= 26.2 {
+                        /*client.gui.setScreen(org.polyfrost.polyplus.client.gui.PolyPlusMainMenuScreen())
+                        *///?} else {
                         client.setScreen(org.polyfrost.polyplus.client.gui.PolyPlusMainMenuScreen())
+                        //?}
                     }
                 }
                 Command.SINGLE_SUCCESS

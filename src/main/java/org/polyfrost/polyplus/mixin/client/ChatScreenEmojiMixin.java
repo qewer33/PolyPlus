@@ -37,7 +37,7 @@ public abstract class ChatScreenEmojiMixin {
     @Inject(method = "init", at = @At("TAIL"))
     private void polyplus$installEmojiFormatter(CallbackInfo ci) {
         if (input == null) return;
-        //? if >= 26.1 {
+        //? if >= 1.21.10 {
         input.addFormatter((str, offset) -> polyplus$formatInput(str));
         //?} else {
         /*input.setFormatter((str, offset) -> polyplus$formatInput(str));

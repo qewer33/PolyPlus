@@ -1,4 +1,4 @@
-//? if >= 1.21.8 && < 26.1 {
+//? if >= 1.21.1 && < 1.21.8 {
 /*package org.polyfrost.polyplus.mixin.client;
 
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
@@ -16,29 +16,29 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 
 @Mixin(PlayerTabOverlay.class)
-public class PlayerTabBadgeMixin {
+public class PlayerTabBadgeLegacyMixin {
     @WrapOperation(
         method = "render",
         at = @At(
             value = "INVOKE",
-            target = "Lnet/minecraft/client/gui/GuiGraphics;drawString(Lnet/minecraft/client/gui/Font;Lnet/minecraft/network/chat/Component;III)V"
+            target = "Lnet/minecraft/client/gui/GuiGraphics;drawString(Lnet/minecraft/client/gui/Font;Lnet/minecraft/network/chat/Component;III)I"
         )
     )
-    private void polyplus$tabBadge(
+    private int polyplus$tabBadge(
         GuiGraphics graphics,
         Font font,
         Component name,
         int x,
         int y,
         int color,
-        Operation<Void> original,
+        Operation<Integer> original,
         @Local PlayerInfo info
     ) {
         if (info != null && PolyPlusBadge.shouldBadge(PolyPlusBadge.tabUuid(info.getProfile()))) {
             PolyPlusBadge.blitTab(graphics, x, y);
-            original.call(graphics, font, name, x + PolyPlusBadge.BADGE_ADVANCE, y, color);
+            return original.call(graphics, font, name, x + PolyPlusBadge.BADGE_ADVANCE, y, color);
         } else {
-            original.call(graphics, font, name, x, y, color);
+            return original.call(graphics, font, name, x, y, color);
         }
     }
 

@@ -75,7 +75,7 @@ class CosmeticRenderLayer(renderer: RenderLayerParent<AvatarRenderState, PlayerM
         val equipment = resolveEquipment(player) ?: return
         if (equipment.equipped().isEmpty()) return
         val renderContext = PlayerRenderContext.from(player, partialTicks, limbSwingAmount, ageInTicks)
-        CosmeticRenderer.render(poseStack, bufferSource, lightCoords, player, renderContext, parentModel, equipment, CosmeticCatalog.getParticleColor(player.uuid))
+        CosmeticRenderer.render(poseStack, bufferSource, lightCoords, player, renderContext, parentModel, equipment, resolveParticleColor(player))
     }
 }
 *///?}
@@ -90,14 +90,20 @@ private fun resolveEquipment(entityId: Int): CosmeticEquipment? {
 }
 
 private fun resolveParticleColor(entityId: Int): Int? {
+    org.polyfrost.polyplus.client.gui.preview.PlayerPreviewRenderer.previewParticleColor(entityId)?.let { return it }
     val level = Minecraft.getInstance().level ?: return null
     val entity = level.getEntity(entityId) as? AbstractClientPlayer ?: return null
     return CosmeticCatalog.getParticleColor(entity.uuid)
 }
 //?} else {
 /*private fun resolveEquipment(player: AbstractClientPlayer): CosmeticEquipment? {
+    org.polyfrost.polyplus.client.gui.preview.PlayerPreviewRenderer.previewEquipment(player.id)?.let { return it }
     if (player !is PlayerCosmeticsAccess) return null
     return player.`polyplus$cosmeticEquipment`()
 }
+
+private fun resolveParticleColor(player: AbstractClientPlayer): Int? =
+    org.polyfrost.polyplus.client.gui.preview.PlayerPreviewRenderer.previewParticleColor(player.id)
+        ?: CosmeticCatalog.getParticleColor(player.uuid)
 *///?}
 //?}

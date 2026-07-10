@@ -6,9 +6,20 @@ import net.minecraft.resources.Identifier
 //? if >= 1.21.10 {
 import net.minecraft.network.chat.FontDescription
 //?}
-//? if >= 1.21.11 && < 26.1 {
+//? if >= 1.21.1 {
+import com.mojang.authlib.GameProfile
+//?}
+//? if >= 26.1 {
+import net.minecraft.client.gui.GuiGraphicsExtractor
+//?}
+//? if >= 1.21.1 && < 26.1 {
 /*import net.minecraft.client.gui.GuiGraphics
+*///?}
+//? if >= 1.21.8 {
 import net.minecraft.client.renderer.RenderPipelines
+//?}
+//? if >= 1.21.4 && < 1.21.8 {
+/*import net.minecraft.client.renderer.RenderType
 *///?}
 import org.polyfrost.polyplus.client.cosmetics.CosmeticCatalog
 import java.util.UUID
@@ -41,8 +52,8 @@ object PolyPlusBadge {
             .append(name)
     }
 
-    //? if >= 1.21.11 && < 26.1 {
-    /*private val BADGE_TEXTURE: Identifier = Identifier.fromNamespaceAndPath("polyplus", "textures/badge.png")
+    //? if >= 1.21.1 {
+    private val BADGE_TEXTURE: Identifier = Identifier.fromNamespaceAndPath("polyplus", "textures/badge.png")
 
     private const val TEX_W = 788
     private const val TEX_H = 748
@@ -60,16 +71,51 @@ object PolyPlusBadge {
     const val BADGE_ADVANCE = PAD_LEFT + BADGE_W + PAD_RIGHT
 
     @JvmStatic
-    fun blitTab(graphics: GuiGraphics, x: Int, y: Int) {
+    fun tabUuid(profile: GameProfile): UUID =
+        //? if >= 1.21.10 {
+        profile.id()
+        //?} else {
+        /*profile.getId()
+        *///?}
+
+    @JvmStatic
+    //? if >= 26.1 {
+    fun blitTab(graphics: GuiGraphicsExtractor, x: Int, y: Int) {
+    //?} else {
+    /*fun blitTab(graphics: GuiGraphics, x: Int, y: Int) {
+    *///?}
+        val bx = x + PAD_LEFT
+        val by = y + BADGE_Y_OFFSET
+        //? if >= 1.21.8 {
         graphics.blit(
             RenderPipelines.GUI_TEXTURED,
             BADGE_TEXTURE,
-            x + PAD_LEFT, y + BADGE_Y_OFFSET,
+            bx, by,
             0f, 0f,
             BADGE_W, BADGE_H,
             TEX_W, TEX_H,
             TEX_W, TEX_H,
         )
+        //?} else if >= 1.21.4 {
+        /*graphics.blit(
+            RenderType::guiTextured,
+            BADGE_TEXTURE,
+            bx, by,
+            0f, 0f,
+            BADGE_W, BADGE_H,
+            TEX_W, TEX_H,
+            TEX_W, TEX_H,
+        )
+        *///?} else {
+        /*graphics.blit(
+            BADGE_TEXTURE,
+            bx, by,
+            BADGE_W, BADGE_H,
+            0f, 0f,
+            TEX_W, TEX_H,
+            TEX_W, TEX_H,
+        )
+        *///?}
     }
-    *///?}
+    //?}
 }

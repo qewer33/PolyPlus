@@ -35,7 +35,7 @@ import net.minecraft.client.renderer.entity.state.AvatarRenderState;
 @Mixin(PlayerModel.class)
 public class PlayerModelMixin
     //? if < 1.21.4
-    /*implements PlayerModelRootAccess*/
+    //implements PlayerModelRootAccess
 {
 
     //? if < 1.21.4 {

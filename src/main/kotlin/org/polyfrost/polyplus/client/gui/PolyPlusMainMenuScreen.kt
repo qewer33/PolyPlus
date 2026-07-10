@@ -104,8 +104,14 @@ class PolyPlusMainMenuScreen : ComposeScreen(RenderMode.CONTINUOUS) {
     *///?} else {
     override fun extractRenderState(ctx: net.minecraft.client.gui.GuiGraphicsExtractor, mouseX: Int, mouseY: Int, tickDelta: Float) {
         if (mainMenuPanoramaEnabled()) {
-            net.minecraft.client.Minecraft.getInstance().gameRenderer.getPanorama()
+            net.minecraft.client.Minecraft.getInstance().gameRenderer
+                //? if >= 26.2 {
+                /*.panorama()
+                .extractRenderState(ctx, width, height)
+                *///?} else {
+                .getPanorama()
                 .extractRenderState(ctx, width, height, true)
+                //?}
             ctx.blurBeforeThisStratum()
         }
         super.extractRenderState(ctx, mouseX, mouseY, tickDelta)
@@ -146,16 +152,38 @@ class PolyPlusMainMenuScreen : ComposeScreen(RenderMode.CONTINUOUS) {
         Theme {
             MainMenu(
                 actions = MenuActions(
-                    singleplayer = { mc.setScreen(net.minecraft.client.gui.screens.worldselection.SelectWorldScreen(this)) },
-                    multiplayer = { mc.setScreen(net.minecraft.client.gui.screens.multiplayer.JoinMultiplayerScreen(this)) },
+                    singleplayer = {
+                        //? if >= 26.2 {
+                        /*mc.gui.setScreen(net.minecraft.client.gui.screens.worldselection.SelectWorldScreen(this))
+                        *///?} else {
+                        mc.setScreen(net.minecraft.client.gui.screens.worldselection.SelectWorldScreen(this))
+                        //?}
+                    },
+                    multiplayer = {
+                        //? if >= 26.2 {
+                        /*mc.gui.setScreen(net.minecraft.client.gui.screens.multiplayer.JoinMultiplayerScreen(this))
+                        *///?} else {
+                        mc.setScreen(net.minecraft.client.gui.screens.multiplayer.JoinMultiplayerScreen(this))
+                        //?}
+                    },
                     settings = {
                         //? if >= 26.1 {
+                        //? if >= 26.2 {
+                        /*mc.gui.setScreen(net.minecraft.client.gui.screens.options.OptionsScreen(this, mc.options, false))
+                        *///?} else {
                         mc.setScreen(net.minecraft.client.gui.screens.options.OptionsScreen(this, mc.options, false))
+                        //?}
                         //?} else {
                         /*mc.setScreen(net.minecraft.client.gui.screens.options.OptionsScreen(this, mc.options))
                         *///?}
                     },
-                    mods = { mc.setScreen(org.polyfrost.oneconfig.internal.ui.compose.impls.OneConfigUIScreen()) },
+                    mods = {
+                        //? if >= 26.2 {
+                        /*mc.gui.setScreen(org.polyfrost.oneconfig.internal.ui.compose.impls.OneConfigUIScreen())
+                        *///?} else {
+                        mc.setScreen(org.polyfrost.oneconfig.internal.ui.compose.impls.OneConfigUIScreen())
+                        //?}
+                    },
                     fullscreen = { mc.window.toggleFullScreen() },
                     quit = { mc.stop() },
                     connect = { server -> connectTo(mc, server) },

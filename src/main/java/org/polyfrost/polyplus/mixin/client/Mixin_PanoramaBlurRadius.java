@@ -13,16 +13,22 @@ public class Mixin_PanoramaBlurRadius {
     private static final int POLYPLUS_PANORAMA_BLUR_RADIUS = 7;
 
     @ModifyExpressionValue(
-        //? if >= 1.21.11 {
-        method = "render",
-        //?} else {
+        //? if >= 26.1 {
+        method = "extractOptions",
+        //?} elif >= 1.21.11 {
+        /*method = "render",
+        *///?} else {
         /*method = "processBlurEffect",
         *///?}
         at = @At(value = "INVOKE", target = "Lnet/minecraft/client/Options;getMenuBackgroundBlurriness()I")
     )
     private int polyplus$forcePanoramaBlurRadius(int original) {
         Minecraft mc = Minecraft.getInstance();
+        //? if >= 26.2 {
+        /*if (mc.gui.screen() instanceof PolyPlusMainMenuScreen && PolyPlusMainMenuScreenKt.mainMenuPanoramaEnabled()) {
+        *///?} else {
         if (mc.screen instanceof PolyPlusMainMenuScreen && PolyPlusMainMenuScreenKt.mainMenuPanoramaEnabled()) {
+        //?}
             return POLYPLUS_PANORAMA_BLUR_RADIUS;
         }
         return original;
