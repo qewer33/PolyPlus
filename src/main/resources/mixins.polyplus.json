@@ -8,6 +8,7 @@
   },
   "client": [
     "Mixin_NoAI",
+    "Mixin_SentryCrashReport",
     "Mixin_ReplaceIcon",
     "client.Mixin_ReplaceCapeTexture",
     "client.Mixin_OneConfigNavigationGraph",

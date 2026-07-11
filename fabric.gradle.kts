@@ -104,6 +104,7 @@ dependencies {
     }
 
     implementation(libs.discord.game.sdk4j)
+    implementation(libs.sentry)
     implementation(libs.bundles.ktor.client)
     implementation(libs.bundles.ktor.server)
     implementation(libs.bundles.ktor.serialization)
@@ -112,11 +113,12 @@ dependencies {
 }
 
 run {
-    val ktorRoots = libs.bundles.ktor.client.get() +
+    val bundledRoots = libs.bundles.ktor.client.get() +
         libs.bundles.ktor.server.get() +
-        libs.bundles.ktor.serialization.get()
+        libs.bundles.ktor.serialization.get() +
+        libs.sentry.get()
     val closure = configurations.detachedConfiguration(
-        *ktorRoots.map { dependencies.create(it) }.toTypedArray()
+        *bundledRoots.map { dependencies.create(it) }.toTypedArray()
     )
     closure.resolvedConfiguration.resolvedArtifacts.forEach { art ->
         val id = art.moduleVersion.id

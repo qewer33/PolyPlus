@@ -60,6 +60,7 @@ internal object EmoteAssetParser {
             }
         } catch (ex: Exception) {
             logger.error("Failed to load emote animation {} for cosmetic {}", asset.relativePath, cosmeticId, ex)
+            org.polyfrost.polyplus.client.PolyPlusSentry.capture(ex)
         }
     }
 
@@ -74,6 +75,7 @@ internal object EmoteAssetParser {
             manifest.open().use(EmoteRulesParser::parseStream)
         } catch (ex: Exception) {
             logger.error("Failed to load emote rules {}", manifest.relativePath, ex)
+            org.polyfrost.polyplus.client.PolyPlusSentry.capture(ex)
             emptyMap()
         }
     }
@@ -122,6 +124,7 @@ internal object EmoteAssetParser {
             }
         } catch (ex: Exception) {
             logger.error("Failed to load effect geometry for {}", pack.name, ex)
+            org.polyfrost.polyplus.client.PolyPlusSentry.capture(ex)
             emptyList()
         }
     }

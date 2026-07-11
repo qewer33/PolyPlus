@@ -35,6 +35,7 @@ object DiscordPresence {
         PolyPlusClient.SCOPE.launch {
             tick().onFailure { throwable ->
                 LOGGER.error("An error occurred while running Discord RPC!", throwable)
+                org.polyfrost.polyplus.client.PolyPlusSentry.capture(throwable)
             }
 
             running.set(false)

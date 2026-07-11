@@ -28,7 +28,7 @@ object BillingService {
         ) {
             contentType(ContentType.Application.Json)
             setBody(CreateCheckoutRequest(player = player, prices = prices))
-        }.onFailure { LOGGER.error("Failed to create Stripe checkout", it) }
+        }.onFailure { LOGGER.error("Failed to create Stripe checkout", it); org.polyfrost.polyplus.client.PolyPlusSentry.capture(it) }
     }
 
     suspend fun checkoutAndOpen(priceIds: List<String>): Result<String> =
@@ -41,5 +41,5 @@ object BillingService {
         PolyPlusClient.HTTP
             .getBodyAuthorized<TransactionsResponse>("${PolyPlusConfig.apiUrl}/transactions/player")
             .map { it.transactions.sortedByDescending { tx -> tx.id } }
-            .onFailure { LOGGER.error("Failed to fetch transactions", it) }
+            .onFailure { LOGGER.error("Failed to fetch transactions", it); org.polyfrost.polyplus.client.PolyPlusSentry.capture(it) }
 }

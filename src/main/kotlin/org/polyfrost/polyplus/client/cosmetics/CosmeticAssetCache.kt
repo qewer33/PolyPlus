@@ -79,13 +79,14 @@ object CosmeticAssetCache {
                 hashManager.awaitHashes()
                 if (!baseDir.exists() && !baseDir.mkdirs()) {
                     LOGGER.error("Failed to create cosmetics directory at ${baseDir.absolutePath}")
+                    org.polyfrost.polyplus.client.PolyPlusSentry.captureMessage("Failed to create cosmetics directory at ${baseDir.absolutePath}")
                     return@withLock
                 }
 
                 try {
                     for (definition in definitions) {
                         runCatching { materializeCosmeticLocked(definition) }
-                            .onFailure { LOGGER.error("Failed to download cosmetic {}", definition.id, it) }
+                            .onFailure { LOGGER.error("Failed to download cosmetic {}", definition.id, it); org.polyfrost.polyplus.client.PolyPlusSentry.capture(it) }
                     }
 
                     //? if >= 1.21.1 {
@@ -94,7 +95,7 @@ object CosmeticAssetCache {
 
                     for (definition in definitions) {
                         runCatching { loadCosmeticAssetsLocked(definition) }
-                            .onFailure { LOGGER.error("Failed to load cosmetic {}", definition.id, it) }
+                            .onFailure { LOGGER.error("Failed to load cosmetic {}", definition.id, it); org.polyfrost.polyplus.client.PolyPlusSentry.capture(it) }
                     }
                 } finally {
                     hashManager.saveHashes()
@@ -130,6 +131,7 @@ object CosmeticAssetCache {
                     true
                 }.getOrElse {
                     LOGGER.error("Failed to ensure cosmetic {} is loaded", definition.id, it)
+                    org.polyfrost.polyplus.client.PolyPlusSentry.capture(it)
                     false
                 }
             }

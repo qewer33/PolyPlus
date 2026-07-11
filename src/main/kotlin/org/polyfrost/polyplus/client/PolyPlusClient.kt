@@ -8,6 +8,7 @@ import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.plugins.websocket.WebSockets
 import io.ktor.http.userAgent
 import io.ktor.serialization.kotlinx.json.json
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -34,7 +35,12 @@ object PolyPlusClient {
     private val LOGGER = LogManager.getLogger(PolyPlusConstants.NAME)
     private val cosmeticsRefreshInProgress = AtomicBoolean(false)
 
-    @JvmField val SCOPE = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    private val EXCEPTION_HANDLER = CoroutineExceptionHandler { _, throwable ->
+        LOGGER.error("Uncaught exception in PolyPlus coroutine", throwable)
+        PolyPlusSentry.capture(throwable)
+    }
+
+    @JvmField val SCOPE = CoroutineScope(SupervisorJob() + Dispatchers.Default + EXCEPTION_HANDLER)
 
     @JvmField val JSON = Json {
         prettyPrint = true
@@ -62,6 +68,7 @@ object PolyPlusClient {
     }
 
     fun initialize() {
+        PolyPlusSentry.initialize()
         PolyPlusConfig.preload()
 
         val earlyHooks: List<EarlyInitializable> = buildList {
@@ -131,12 +138,12 @@ object PolyPlusClient {
         LOGGER.info("Refreshing cosmetics catalog and player data...")
 
         runCatching { CosmeticCatalog.refreshCatalog() }
-            .onFailure { LOGGER.error("Cosmetic catalog refresh failed", it) }
+            .onFailure { LOGGER.error("Cosmetic catalog refresh failed", it); PolyPlusSentry.capture(it) }
         runCatching { CosmeticCatalog.refreshPlayer() }
-            .onFailure { LOGGER.error("Player cosmetics refresh failed", it) }
+            .onFailure { LOGGER.error("Player cosmetics refresh failed", it); PolyPlusSentry.capture(it) }
         //? if >= 1.21.1 {
         runCatching { CosmeticService.syncLocalActive() }
-            .onFailure { LOGGER.error("Local active cosmetics sync failed", it) }
+            .onFailure { LOGGER.error("Local active cosmetics sync failed", it); PolyPlusSentry.capture(it) }
         //?} else {
         /*runCatching { CosmeticSync.applyLocalActiveFromCatalog() }
             .onFailure { LOGGER.error("Local active cosmetics apply failed", it) }*/

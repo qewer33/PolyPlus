@@ -99,7 +99,7 @@ object CosmeticCatalog {
     suspend fun refreshCatalog() {
         val cosmetics = runCatching {
             PolyPlusClient.HTTP.get("${PolyPlusConfig.apiUrl}/cosmetics").body<CosmeticList>()
-        }.onFailure { LOGGER.error("Failed to fetch cosmetic catalog", it) }
+        }.onFailure { LOGGER.error("Failed to fetch cosmetic catalog", it); org.polyfrost.polyplus.client.PolyPlusSentry.capture(it) }
             .getOrNull() ?: return
 
         // Drop groups whose type this client version doesn't recognize
@@ -138,7 +138,7 @@ object CosmeticCatalog {
         //? if >= 1.21.1 {
         PolyPlusClient.SCOPE.launch {
             runCatching { CosmeticAssetCache.preloadDefinitions(flattened + flattenedEmotes) }
-                .onFailure { LOGGER.error("Failed to preload cosmetic assets", it) }
+                .onFailure { LOGGER.error("Failed to preload cosmetic assets", it); org.polyfrost.polyplus.client.PolyPlusSentry.capture(it) }
         }
         //?}
     }
@@ -146,7 +146,7 @@ object CosmeticCatalog {
     suspend fun refreshPlayer() {
         val player = PolyPlusClient.HTTP
             .getBodyAuthorized<PlayerCosmetics>("${PolyPlusConfig.apiUrl}/cosmetics/player")
-            .onFailure { LOGGER.error("Failed to fetch player cosmetics", it) }
+            .onFailure { LOGGER.error("Failed to fetch player cosmetics", it); org.polyfrost.polyplus.client.PolyPlusSentry.capture(it) }
             .getOrNull() ?: return
 
         val ownedGroups = player.owned.filter { it.type != CosmeticType.Unknown }
@@ -184,7 +184,7 @@ object CosmeticCatalog {
         PolyPlusClient.SCOPE.launch {
             runCatching {
                 CosmeticAssetCache.preloadDefinitions(ownedDefs + player.emotes.map { it.asCosmeticDefinition() })
-            }.onFailure { LOGGER.error("Failed to preload owned cosmetic assets", it) }
+            }.onFailure { LOGGER.error("Failed to preload owned cosmetic assets", it); org.polyfrost.polyplus.client.PolyPlusSentry.capture(it) }
         }
         //?}
     }
@@ -197,6 +197,7 @@ object CosmeticCatalog {
         Unit
     }.onFailure {
         LOGGER.error("Failed to set equipped cosmetics", it)
+        org.polyfrost.polyplus.client.PolyPlusSentry.capture(it)
     }
 
     fun applyRemoteActive(uuid: UUID, cosmeticIds: List<Int>) {
