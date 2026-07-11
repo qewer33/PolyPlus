@@ -31,17 +31,20 @@ object PolyPlusSentry {
 
     @JvmStatic
     fun capture(throwable: Throwable) {
+        initialize()
         if (!seen.add(throwable)) return
         Sentry.captureException(throwable)
     }
 
     @JvmStatic
     fun captureMessage(message: String) {
+        initialize()
         Sentry.captureMessage(message, io.sentry.SentryLevel.ERROR)
     }
 
     @JvmStatic
     fun captureFatal(throwable: Throwable) {
+        initialize()
         if (!Sentry.isEnabled()) return
         if (!seen.add(throwable)) return
         Sentry.captureException(throwable)
