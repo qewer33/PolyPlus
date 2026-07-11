@@ -817,9 +817,12 @@ private fun PreviewPanel(
             .border(1.dp, LocalTheme.current.borderColor, RoundedCornerShape(12.dp)),
     ) {
         Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
+            val hasHeadCosmetic = CosmeticCatalog.localEquipped().equipped
+                .containsKey(org.polyfrost.polyplus.client.network.http.responses.BodySlot.Hat)
             PlayerPreview(
                 Modifier.align(Alignment.Center).size(190.dp, 330.dp),
                 source = PlayerPreviewSource.LocalLive,
+                verticalAnchor = if (hasHeadCosmetic) 0.64f else 0.5f,
             )
             if (selected != null) {
                 Column(Modifier.align(Alignment.TopStart).padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1275,7 +1278,7 @@ private fun CosmeticThumbnail(item: CosmeticUiItem, modifier: Modifier) {
                 source = source,
                 allowDrag = false,
                 modelScale = 0.42f,
-                verticalAnchor = 0.52f,
+                verticalAnchor = if (item.type == CosmeticType.Hat) 0.64f else 0.52f,
                 previewKey = "card-${item.groupId}",
             )
         }
@@ -1344,9 +1347,13 @@ private fun BundlePreviewPanel(
             .background(cardBrush())
             .border(1.dp, LocalTheme.current.borderColor, RoundedCornerShape(12.dp)),
     ) {
+        val bundleSource = rememberBundlePreviewSource(bundleView)
+        val bundleHasHat = (bundleSource as? PlayerPreviewSource.Override)
+            ?.equipment?.get(org.polyfrost.polyplus.client.network.http.responses.BodySlot.Hat) != null
         PlayerPreview(
             Modifier.align(Alignment.Center).size(190.dp, 300.dp),
-            source = rememberBundlePreviewSource(bundleView),
+            source = bundleSource,
+            verticalAnchor = if (bundleHasHat) 0.64f else 0.5f,
         )
     }
 }

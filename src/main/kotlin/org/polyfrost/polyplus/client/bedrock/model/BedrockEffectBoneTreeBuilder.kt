@@ -16,6 +16,7 @@ internal class BedrockEffectBoneTreeBuilder(
     private val textureHeight = geometry.description.textureHeight
     private val childrenByParent = geometry.childrenByParent()
     private val built = mutableMapOf<String, BedrockBoneRenderer>()
+    private val visiting = mutableSetOf<String>()
 
     val bones: Map<String, BedrockBoneRenderer> get() = built
 
@@ -24,7 +25,11 @@ internal class BedrockEffectBoneTreeBuilder(
 
         val bone = geometry.bones[name] ?: error("Missing bone $name")
         val effectiveLevel = bone.lightLevel.takeIf { it >= 0 } ?: parentLevel
-        val children = (childrenByParent[name] ?: emptyList()).map { buildBone(it, effectiveLevel) }
+        check(visiting.add(name)) { "Cyclic bone parenting detected at $name" }
+        val children = (childrenByParent[name] ?: emptyList())
+            .filter { it != name && it !in visiting }
+            .map { buildBone(it, effectiveLevel) }
+        visiting.remove(name)
         val position = bone.initialEffectPosition(geometry.bones, playerGeometry)
         val rotation = bone.initialEffectRotation()
 

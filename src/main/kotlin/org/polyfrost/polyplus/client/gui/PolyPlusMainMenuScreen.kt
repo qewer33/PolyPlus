@@ -121,6 +121,18 @@ class PolyPlusMainMenuScreen : ComposeScreen(RenderMode.CONTINUOUS) {
     }
     //?}
 
+    //? if <26.1 {
+    /*override fun renderBackground(ctx: net.minecraft.client.gui.GuiGraphics, mouseX: Int, mouseY: Int, tickDelta: Float) {
+        if (mainMenuPanoramaEnabled()) return
+        super.renderBackground(ctx, mouseX, mouseY, tickDelta)
+    }
+    *///?} else {
+    override fun extractBackground(ctx: net.minecraft.client.gui.GuiGraphicsExtractor, mouseX: Int, mouseY: Int, tickDelta: Float) {
+        if (mainMenuPanoramaEnabled()) return
+        super.extractBackground(ctx, mouseX, mouseY, tickDelta)
+    }
+    //?}
+
     @Composable
     override fun compose() {
         val mc = net.minecraft.client.Minecraft.getInstance()

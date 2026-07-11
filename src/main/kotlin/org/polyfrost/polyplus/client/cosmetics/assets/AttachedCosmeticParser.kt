@@ -81,6 +81,10 @@ internal object AttachedCosmeticParser {
     }
 
     private fun applyAutoMirror(geometry: BedrockGeometry): BedrockGeometry {
+        if (geometry.bones.values.any { bone -> bone.cubes.any { it.mirror } }) {
+            return geometry
+        }
+
         val bones = geometry.bones.values
         val rewritten = geometry.bones.mapValues inner@{ (_, bone) ->
             if (bone.pivot.x <= 0f || bone.cubes.none { it.uv.faces.isEmpty() }) return@inner bone
@@ -150,18 +154,51 @@ internal object AttachedCosmeticParser {
             return geometry
         }
 
-        val boneNames = geometry.bones.keys
-        val renderable = geometry.renderableBoneNames()
-        val rewritten = geometry.bones.mapValues { (name, bone) ->
-            val isTopLevel = bone.parent.isEmpty() || bone.parent !in boneNames
-            if (!isTopLevel || name !in renderable) {
+        val prepared = if (slot == BodySlot.Boots) splitStraddlingLegBones(geometry) else geometry
+
+        val renderable = prepared.renderableBoneNames()
+        val rewritten = prepared.bones.mapValues { (name, bone) ->
+            if (name !in renderable || !isAttachmentRoot(prepared, bone)) {
                 return@mapValues bone
             }
-            val target = attachTargetFor(geometry, slot, bone) ?: return@mapValues bone
+            val target = attachTargetFor(prepared, slot, bone) ?: return@mapValues bone
             bone.copy(parent = target.serializedName)
         }
-        return geometry.copy(bones = rewritten)
+        return prepared.copy(bones = rewritten)
     }
+
+    private fun isAttachmentRoot(geometry: BedrockGeometry, bone: BedrockBone): Boolean {
+        if (bone.cubes.isEmpty()) return false
+        var parent = geometry.bones[bone.parent]
+        while (parent != null) {
+            if (parent.cubes.isNotEmpty()) return false
+            parent = geometry.bones[parent.parent]
+        }
+        return true
+    }
+
+    private fun splitStraddlingLegBones(geometry: BedrockGeometry): BedrockGeometry {
+        val hasChild = geometry.bones.values.mapTo(hashSetOf()) { it.parent }
+        val renderable = geometry.renderableBoneNames()
+        val result = LinkedHashMap<String, BedrockBone>(geometry.bones.size)
+        for ((name, bone) in geometry.bones) {
+            if (name !in renderable || name in hasChild || bone.cubes.isEmpty()) {
+                result[name] = bone
+                continue
+            }
+            val right = bone.cubes.filter { cubeCenterX(it) < 0f }
+            val left = bone.cubes.filter { cubeCenterX(it) >= 0f }
+            if (right.isEmpty() || left.isEmpty()) {
+                result[name] = bone
+                continue
+            }
+            result["${name}_r"] = bone.copy(name = "${name}_r", cubes = right)
+            result["${name}_l"] = bone.copy(name = "${name}_l", cubes = left)
+        }
+        return geometry.copy(bones = result)
+    }
+
+    private fun cubeCenterX(cube: BedrockCube): Float = cube.origin.x + cube.size.x * 0.5f
 
     private fun attachTargetFor(geometry: BedrockGeometry, slot: BodySlot, bone: BedrockBone): PlayerModelBone? {
         if (slot == BodySlot.Boots) {

@@ -95,7 +95,7 @@ class BedrockMesh private constructor(
             val modelMaxY = -(minY - pivot.y) + inflate
 
             var modelMinZ = minZ
-            var modelMaxZ = minZ + depth
+            var modelMaxZ = minZ + depth + 2f * inflate
             if (depth < BILLBOARD_EPSILON) {
                 val centerZ = (min(cube.origin.z, endZ) + max(cube.origin.z, endZ)) * 0.5f - pivot.z
                 modelMinZ = centerZ - BILLBOARD_HALF_THICKNESS
@@ -106,7 +106,7 @@ class BedrockMesh private constructor(
                 minX = minX,
                 minY = modelMinY,
                 minZ = modelMinZ,
-                maxX = minX + width,
+                maxX = minX + width + 2f * inflate,
                 maxY = modelMaxY,
                 maxZ = modelMaxZ,
             )
@@ -278,12 +278,12 @@ class BedrockMesh private constructor(
                 if (width >= BILLBOARD_EPSILON && height >= BILLBOARD_EPSILON) {
                     addFace(
                         arrayOf(north1, north0, north3, north2),
-                        u0 + uvDepth, v0 + uvDepth, u0 + uvDepth + uvWidth, v0 + uvDepth + uvHeight,
+                        u1, v1, u2, v2,
                         Direction.NORTH,
                     )
                     addFace(
                         arrayOf(south0, south1, south2, south3),
-                        u0 + uvDepth, v0 + uvDepth, u0 + uvDepth + uvWidth, v0 + uvDepth + uvHeight,
+                        u3, v1, u4, v2,
                         Direction.SOUTH,
                     )
                 }
