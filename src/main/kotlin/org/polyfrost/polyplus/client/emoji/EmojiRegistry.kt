@@ -27,6 +27,32 @@ object EmojiRegistry {
         Pattern.compile(alts.toString())
     }
 
+    private val unicodeToShortcode: Map<String, String> by lazy {
+        val glyphToAlias = HashMap<String, String>()
+        for ((alias, glyph) in shortcodes) {
+            val existing = glyphToAlias[glyph]
+            if (existing == null || alias.length < existing.length) glyphToAlias[glyph] = alias
+        }
+        val map = LinkedHashMap<String, String>()
+        for (seq in unicode.keys.sortedByDescending { it.length }) {
+            val alias = glyphToAlias[unicode[seq]] ?: continue
+            map[seq] = ":$alias:"
+        }
+        map
+    }
+
+    private val UNICODE_SEQ: Pattern? by lazy {
+        if (unicodeToShortcode.isEmpty()) return@lazy null
+        val alts = StringBuilder()
+        var first = true
+        for (seq in unicodeToShortcode.keys) {
+            if (!first) alts.append('|')
+            alts.append(Pattern.quote(seq))
+            first = false
+        }
+        Pattern.compile(alts.toString())
+    }
+
     private fun loadMap(name: String): Map<String, String> {
         val stream = EmojiRegistry::class.java.getResourceAsStream("/assets/polyplus/emoji/$name")
         if (stream == null) {
@@ -143,4 +169,21 @@ object EmojiRegistry {
     @JvmStatic
     fun styleInput(text: String, base: Style): net.minecraft.util.FormattedCharSequence? =
         expand(text, base)?.visualOrderText
+
+    @JvmStatic
+    fun toShortcodes(text: String): String {
+        if (!enabled() || text.isEmpty()) return text
+        val pattern = UNICODE_SEQ ?: return text
+        val matcher = pattern.matcher(text)
+        if (!matcher.find()) return text
+        val sb = StringBuilder(text.length)
+        var last = 0
+        do {
+            sb.append(text, last, matcher.start())
+            sb.append(unicodeToShortcode[matcher.group()])
+            last = matcher.end()
+        } while (matcher.find())
+        sb.append(text, last, text.length)
+        return sb.toString()
+    }
 }

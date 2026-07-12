@@ -17,6 +17,7 @@
     "client.NameTagBadgeMixin",
     "client.ChatEmojiMixin",
     "client.ChatScreenEmojiMixin",
+    "client.ChatSendEmojiMixin",
     "client.Mixin_ReplaceMainMenuEarly",
     "client.Mixin_ReplaceMainMenu",
     "client.Mixin_TrackRecentServers",
