@@ -30,6 +30,9 @@ object PolyPlusConfig : Config("${PolyPlusConstants.ID}.json", PolyPlusConstants
     var onboardingFeaturesApplied = false
 
     @JvmStatic @Include
+    var onboardingSprintApplied = false
+
+    @JvmStatic @Include
     var onboardingPolyBlurApplied = false
 
     @JvmStatic @Include

@@ -75,9 +75,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import org.jetbrains.skia.Image as SkiaImage
 import org.polyfrost.oneconfig.internal.ui.components.Icon
 import org.polyfrost.oneconfig.internal.ui.components.LocalUiOversample
@@ -93,7 +95,6 @@ import org.polyfrost.polyplus.client.gui.preview.PlayerPreview
 import org.polyfrost.polyplus.client.gui.preview.PlayerPreviewSource
 import org.polyfrost.polyplus.client.utils.ClientPlatform
 import java.util.Collections
-import java.util.IdentityHashMap
 import java.util.concurrent.ConcurrentHashMap
 
 class PolyPlusMainMenuScreen : ComposeScreen(RenderMode.CONTINUOUS) {
@@ -171,7 +172,7 @@ class PolyPlusMainMenuScreen : ComposeScreen(RenderMode.CONTINUOUS) {
         var pingTick by remember { mutableStateOf(0) }
         LaunchedEffect(servers) {
             if (servers.isEmpty()) return@LaunchedEffect
-            MainMenuServerPings.start(servers)
+            MainMenuServerPings.start(this, servers)
             while (true) {
                 MainMenuServerPings.tick()
                 pingTick++
@@ -208,13 +209,7 @@ class PolyPlusMainMenuScreen : ComposeScreen(RenderMode.CONTINUOUS) {
                         /*mc.setScreen(net.minecraft.client.gui.screens.options.OptionsScreen(this, mc.options))
                         *///?}
                     },
-                    mods = {
-                        //? if >= 26.2 {
-                        /*mc.gui.setScreen(org.polyfrost.oneconfig.internal.ui.compose.impls.OneConfigUIScreen())
-                        *///?} else {
-                        mc.setScreen(org.polyfrost.oneconfig.internal.ui.compose.impls.OneConfigUIScreen())
-                        //?}
-                    },
+                    mods = { PolyPlusOneConfigIntegration.openMods() },
                     fullscreen = { mc.window.toggleFullScreen() },
                     quit = { mc.stop() },
                     connect = { server -> connectTo(mc, server) },
@@ -234,18 +229,22 @@ class PolyPlusMainMenuScreen : ComposeScreen(RenderMode.CONTINUOUS) {
 
 private object MainMenuServerPings {
     private val pinger = net.minecraft.client.multiplayer.ServerStatusPinger()
-    private val started = Collections.newSetFromMap(IdentityHashMap<net.minecraft.client.multiplayer.ServerData, Boolean>())
+    private val started = Collections.newSetFromMap(ConcurrentHashMap<net.minecraft.client.multiplayer.ServerData, Boolean>())
 
-    @Synchronized
-    fun start(servers: List<net.minecraft.client.multiplayer.ServerData>) {
+    fun start(scope: CoroutineScope, servers: List<net.minecraft.client.multiplayer.ServerData>) {
         servers.forEach { data ->
             if (started.add(data)) {
-                //? if >= 1.21.11 {
-                val elg = net.minecraft.server.network.EventLoopGroupHolder.remote(false)
-                runCatching { pinger.pingServer(data, Runnable {}, Runnable {}, elg) }
-                //?} else {
-                /*runCatching { pinger.pingServer(data, Runnable {}, Runnable {}) }
-                *///?}
+                scope.launch(Dispatchers.IO) {
+                    val ok = runCatching {
+                        //? if >= 1.21.11 {
+                        val elg = net.minecraft.server.network.EventLoopGroupHolder.remote(false)
+                        pinger.pingServer(data, Runnable {}, Runnable {}, elg)
+                        //?} else {
+                        /*pinger.pingServer(data, Runnable {}, Runnable {})
+                        *///?}
+                    }.isSuccess
+                    if (!ok) started.remove(data)
+                }
             }
         }
     }

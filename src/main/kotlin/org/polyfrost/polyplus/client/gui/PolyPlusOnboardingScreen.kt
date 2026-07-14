@@ -104,6 +104,14 @@ class PolyPlusOnboardingScreen : ComposeScreen(RenderMode.CONTINUOUS) {
 
     @Composable
     override fun compose() {
+        val pages = remember {
+            buildList {
+                add(OnboardingPage.LOOK_AND_FEEL)
+                if (OnboardingFeatures.modsPageAvailable) add(OnboardingPage.MODS)
+                add(OnboardingPage.COSMETICS)
+                add(OnboardingPage.DONE)
+            }
+        }
         var page by remember { mutableIntStateOf(0) }
         var lightTheme by remember { mutableStateOf(PolyPlusConfig.onboardingLightTheme) }
         var uiStyle by remember { mutableIntStateOf(PolyPlusConfig.onboardingUiStyle) }
@@ -173,9 +181,10 @@ class PolyPlusOnboardingScreen : ComposeScreen(RenderMode.CONTINUOUS) {
                                 .background(PanelBackground)
                                 .border(1.3.dp, PanelBorder, PANEL_SHAPE),
                         ) {
-                            when (page) {
-                                0 -> LookAndFeelPage(lightTheme, { lightTheme = it }, uiStyle, { uiStyle = it }, hudStyle, { hudStyle = it })
-                                1 -> ModsPage(
+                            when (pages[page]) {
+                                OnboardingPage.LOOK_AND_FEEL ->
+                                    LookAndFeelPage(lightTheme, { lightTheme = it }, uiStyle, { uiStyle = it }, hudStyle, { hudStyle = it })
+                                OnboardingPage.MODS -> ModsPage(
                                     toggleSprint,
                                     { toggleSprint = it },
                                     hudSelections,
@@ -183,20 +192,21 @@ class PolyPlusOnboardingScreen : ComposeScreen(RenderMode.CONTINUOUS) {
                                     motionBlur,
                                     { motionBlur = it },
                                 )
-                                2 -> CosmeticsPage(
+                                OnboardingPage.COSMETICS -> CosmeticsPage(
                                     onClaim = { PolyPlusClient.refreshCosmetics() },
                                     onStore = {
                                         finish()
                                         PolyPlusOneConfigIntegration.openCosmetics()
                                     },
                                 )
-                                else -> DonePage()
+                                OnboardingPage.DONE -> DonePage()
                             }
                             BottomNavigation(
                                 page,
+                                pages.size,
                                 onSkip = finish,
                                 onBack = { page-- },
-                                onNext = { if (page == PAGE_COUNT - 1) finish() else page++ },
+                                onNext = { if (page == pages.size - 1) finish() else page++ },
                             )
                         }
                     }
@@ -243,13 +253,40 @@ private fun ModsPage(
     onMotionBlur: (Int) -> Unit,
 ) {
     Header("Continuing with", "Mods")
-    SectionLabel("Toggle Sprint", 140f)
-    Row(Modifier.offset(232.dp, 172.dp), horizontalArrangement = Arrangement.spacedBy(18.dp)) {
+    val sprint = OnboardingFeatures.polySprintAvailable
+    val huds = OnboardingFeatures.evergreenAvailable
+    val blur = OnboardingFeatures.polyBlurAvailable
+    val heights = buildList {
+        if (sprint) add(SPRINT_SECTION_HEIGHT)
+        if (huds) add(HUD_SECTION_HEIGHT)
+        if (blur) add(BLUR_SECTION_HEIGHT)
+    }
+    val total = heights.sum() + SECTION_GAP * (heights.size - 1).coerceAtLeast(0)
+    var y = CONTENT_TOP + ((CONTENT_BOTTOM - CONTENT_TOP) - total) / 2f
+    if (sprint) {
+        SprintSection(y, toggleSprint, onToggleSprint)
+        y += SPRINT_SECTION_HEIGHT + SECTION_GAP
+    }
+    if (huds) {
+        HudSection(y, hud, onHudChange)
+        y += HUD_SECTION_HEIGHT + SECTION_GAP
+    }
+    if (blur) MotionBlurSection(y, motionBlur, onMotionBlur)
+}
+
+@Composable
+private fun SprintSection(y: Float, toggleSprint: Boolean, onToggleSprint: (Boolean) -> Unit) {
+    SectionLabel("Toggle Sprint", y)
+    Row(Modifier.offset(232.dp, (y + LABEL_HEIGHT).dp), horizontalArrangement = Arrangement.spacedBy(18.dp)) {
         ChoiceButton("Enabled", ONBOARDING_ASSETS + "zap.svg", toggleSprint, 198f) { onToggleSprint(true) }
         ChoiceButton("Disabled", ONBOARDING_ASSETS + "flash-off.svg", !toggleSprint, 198f) { onToggleSprint(false) }
     }
-    SectionLabel("HUD Mods", 228f)
-    Column(Modifier.offset(232.dp, 260.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
+}
+
+@Composable
+private fun HudSection(y: Float, hud: HudSelections, onHudChange: (HudSelections) -> Unit) {
+    SectionLabel("HUD Mods", y)
+    Column(Modifier.offset(232.dp, (y + LABEL_HEIGHT).dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(18.dp)) {
             ChoiceButton("FPS", ONBOARDING_ASSETS + "play-square.svg", hud.fps, 126f) { onHudChange(hud.copy(fps = !hud.fps)) }
             ChoiceButton("CPS", ONBOARDING_ASSETS + "mouse.svg", hud.cps, 126f) { onHudChange(hud.copy(cps = !hud.cps)) }
@@ -261,8 +298,12 @@ private fun ModsPage(
             ChoiceButton("Direction", ONBOARDING_ASSETS + "compass.svg", hud.direction, 126f) { onHudChange(hud.copy(direction = !hud.direction)) }
         }
     }
-    SectionLabel("Motion Blur", 367f)
-    Row(Modifier.offset(232.dp, 399.dp), verticalAlignment = Alignment.CenterVertically) {
+}
+
+@Composable
+private fun MotionBlurSection(y: Float, motionBlur: Int, onMotionBlur: (Int) -> Unit) {
+    SectionLabel("Motion Blur", y)
+    Row(Modifier.offset(232.dp, (y + LABEL_HEIGHT).dp), verticalAlignment = Alignment.CenterVertically) {
         val thumbSize = 13.dp
         var trackWidthPx by remember { mutableStateOf(0f) }
         val progress by animateFloatAsState(
@@ -321,7 +362,7 @@ private fun ModsPage(
             contentAlignment = Alignment.CenterStart,
         ) { OnboardingText(motionBlur.toString(), 12, Modifier.padding(start = 8.dp)) }
     }
-    MotionBlurPreview(motionBlur, Modifier.offset(233.5.dp, 442.dp).size(413.dp, 115.dp))
+    MotionBlurPreview(motionBlur, Modifier.offset(233.5.dp, (y + BLUR_PREVIEW_OFFSET).dp).size(413.dp, BLUR_PREVIEW_HEIGHT.dp))
 }
 
 @Composable
@@ -471,15 +512,15 @@ private fun Checkerboard(modifier: Modifier) {
 }
 
 @Composable
-private fun BottomNavigation(page: Int, onSkip: () -> Unit, onBack: () -> Unit, onNext: () -> Unit) {
+private fun BottomNavigation(page: Int, pageCount: Int, onSkip: () -> Unit, onBack: () -> Unit, onNext: () -> Unit) {
     if (page == 0) {
         ChoiceButton("Skip", MAIN_MENU_ASSETS + "x-close.svg", false, 100f, Modifier.offset(26.dp, 604.dp), onSkip)
     } else {
         ChoiceButton("Back", "assets/polyplus/ico/left-arrow.svg", false, 100f, Modifier.offset(26.dp, 604.dp), onBack)
     }
-    ChoiceButton(if (page == PAGE_COUNT - 1) "Finish" else "Next", MAIN_MENU_ASSETS + "chevron-right.svg", true, 100f, Modifier.offset(754.dp, 604.dp), onNext)
-    Row(Modifier.offset(((PANEL_WIDTH - (PAGE_COUNT * 17f - 5f)) / 2f).dp, 614.dp), horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
-        repeat(PAGE_COUNT) { index ->
+    ChoiceButton(if (page == pageCount - 1) "Finish" else "Next", MAIN_MENU_ASSETS + "chevron-right.svg", true, 100f, Modifier.offset(754.dp, 604.dp), onNext)
+    Row(Modifier.offset(((PANEL_WIDTH - (pageCount * 17f - 5f)) / 2f).dp, 614.dp), horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
+        repeat(pageCount) { index ->
             Box(
                 Modifier.size(if (index == page) 12.dp else 10.dp)
                     .clip(RoundedCornerShape(8.dp))
@@ -552,6 +593,8 @@ private fun loadOnboardingImage(path: String): SkiaImage? = runCatching {
     SkiaImage.makeFromEncoded(bytes)
 }.getOrNull()
 
+private enum class OnboardingPage { LOOK_AND_FEEL, MODS, COSMETICS, DONE }
+
 private data class HudSelections(
     val fps: Boolean,
     val cps: Boolean,
@@ -567,8 +610,17 @@ private const val PANEL_X = 520f
 private const val PANEL_Y = 210f
 private const val PANEL_WIDTH = 880f
 private const val PANEL_HEIGHT = 660f
-private const val PAGE_COUNT = 4
 private const val MOTION_BLUR_MAX = 10
+
+private const val CONTENT_TOP = 140f
+private const val CONTENT_BOTTOM = 557f
+private const val SECTION_GAP = 24f
+private const val LABEL_HEIGHT = 32f
+private const val SPRINT_SECTION_HEIGHT = LABEL_HEIGHT + 32f
+private const val HUD_SECTION_HEIGHT = LABEL_HEIGHT + 82f
+private const val BLUR_PREVIEW_OFFSET = 75f
+private const val BLUR_PREVIEW_HEIGHT = 115f
+private const val BLUR_SECTION_HEIGHT = BLUR_PREVIEW_OFFSET + BLUR_PREVIEW_HEIGHT
 private const val ONBOARDING_ASSETS = "assets/polyplus/onboarding/"
 private const val MAIN_MENU_ASSETS = "assets/polyplus/mainmenu/"
 private val PANEL_SHAPE = RoundedCornerShape(10.345.dp)

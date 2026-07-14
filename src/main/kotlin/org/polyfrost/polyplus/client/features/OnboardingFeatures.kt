@@ -17,14 +17,24 @@ import org.polyfrost.polyplus.client.PolyPlusConfig
 object OnboardingFeatures {
     private val logger = LogManager.getLogger("PolyPlus/Onboarding")
 
+    val polySprintAvailable: Boolean by lazy { classExists(POLYSPRINT_CONFIG) }
+    val polyBlurAvailable: Boolean by lazy { classExists(POLYBLUR_CONFIG) }
+    val evergreenAvailable: Boolean by lazy { classExists(EVERGREEN_FPS) }
+
+    val modsPageAvailable: Boolean
+        get() = polySprintAvailable || polyBlurAvailable || evergreenAvailable
+
     fun initialize() {
-        val polyBlurAvailable = classExists(POLYBLUR_CONFIG)
-        val evergreenAvailable = classExists(EVERGREEN_FPS)
         eventHandler { _: TickEvent.End ->
             if (!PolyPlusConfig.onboardingCompleted) return@eventHandler
             var changed = false
             if (!PolyPlusConfig.onboardingFeaturesApplied) {
                 applyCoreSettings()
+                changed = true
+            }
+            if (polySprintAvailable && !PolyPlusConfig.onboardingSprintApplied) {
+                applyToggleSprint(PolyPlusConfig.onboardingToggleSprint)
+                PolyPlusConfig.onboardingSprintApplied = true
                 changed = true
             }
             if (polyBlurAvailable && !PolyPlusConfig.onboardingPolyBlurApplied) {
@@ -45,6 +55,10 @@ object OnboardingFeatures {
 
     fun applySavedSettings() {
         applyCoreSettings()
+        if (polySprintAvailable) {
+            applyToggleSprint(PolyPlusConfig.onboardingToggleSprint)
+            PolyPlusConfig.onboardingSprintApplied = true
+        }
         if (applyPolyBlur(PolyPlusConfig.onboardingMotionBlur)) {
             PolyPlusConfig.onboardingPolyBlurApplied = true
         }
@@ -56,7 +70,6 @@ object OnboardingFeatures {
 
     private fun applyCoreSettings() {
         applyTheme(PolyPlusConfig.onboardingLightTheme, PolyPlusConfig.onboardingUiStyle)
-        applyToggleSprint(PolyPlusConfig.onboardingToggleSprint)
         PolyPlusConfig.onboardingFeaturesApplied = true
     }
 
@@ -157,6 +170,7 @@ object OnboardingFeatures {
         val className: String,
     )
 
+    private const val POLYSPRINT_CONFIG = "org.polyfrost.polysprint.client.PolySprintConfig"
     private const val POLYBLUR_CONFIG = "org.polyfrost.polyblur.client.PolyBlurConfig"
     private const val EVERGREEN_FPS = "org.polyfrost.evergreenhud.client.hud.FpsHud"
     private const val EVERGREEN_CPS = "org.polyfrost.evergreenhud.client.hud.CpsHud"
