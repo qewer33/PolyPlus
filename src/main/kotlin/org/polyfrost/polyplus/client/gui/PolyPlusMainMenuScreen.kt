@@ -745,7 +745,7 @@ private fun WorldRow(
             .clip(PanelShape)
             .background(if (selected) Accent.asSelectedBackground else PanelBackground)
             .border(BorderWidth, if (selected) Accent else LocalTheme.current.borderColor, PanelShape)
-            .clickable(onClick = onClick)
+            .clickableWithSound(onClick)
             .padding(horizontal = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -793,7 +793,7 @@ private fun GameModeDropdown(
                 .clip(PanelShape)
                 .background(PanelBackground)
                 .border(BorderWidth, LocalTheme.current.borderColor, PanelShape)
-                .clickable { expanded = !expanded }
+                .clickableWithSound { expanded = !expanded }
                 .padding(horizontal = 14.dp),
             contentAlignment = Alignment.Center,
         ) {
@@ -812,7 +812,7 @@ private fun GameModeDropdown(
                             .clip(PanelShape)
                             .background(if (mode == selected) Accent.asSelectedBackground else PanelBackground)
                             .border(BorderWidth, if (mode == selected) Accent else LocalTheme.current.borderColor, PanelShape)
-                            .clickable { onSelect(mode); expanded = false }
+                            .clickableWithSound { onSelect(mode); expanded = false }
                             .padding(horizontal = 14.dp),
                         contentAlignment = Alignment.CenterStart,
                     ) {
@@ -833,7 +833,7 @@ private fun CheatsToggle(checked: Boolean, onToggle: () -> Unit) {
             .clip(PanelShape)
             .background(PanelBackground)
             .border(BorderWidth, LocalTheme.current.borderColor, PanelShape)
-            .clickable(onClick = onToggle)
+            .clickableWithSound(onToggle)
             .padding(horizontal = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -958,7 +958,7 @@ private fun PillButton(label: String, icon: String, modifier: Modifier = Modifie
             .clip(PanelShape)
             .background(PanelBackground)
             .border(BorderWidth, borderColor, PanelShape)
-            .clickable(onClick = onClick)
+            .clickableWithSound(onClick)
             .padding(horizontal = 18.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
         verticalAlignment = Alignment.CenterVertically,
@@ -977,7 +977,7 @@ private fun DropdownPill(label: String, leadingIcon: String, expanded: Boolean, 
             .clip(PanelShape)
             .background(PanelBackground)
             .border(BorderWidth, PanelBorder, PanelShape)
-            .clickable(onClick = onClick)
+            .clickableWithSound(onClick)
             .padding(horizontal = 12.dp),
         contentAlignment = Alignment.Center,
     ) {
@@ -1009,7 +1009,7 @@ private fun ServerRow(
             .clip(PanelShape)
             .background(PanelBackground)
             .border(BorderWidth, PanelBorder, PanelShape)
-            .clickable(onClick = onClick)
+            .clickableWithSound(onClick)
             .padding(horizontal = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(14.dp),
@@ -1075,7 +1075,7 @@ private fun IconButton(
             .clip(PanelShape)
             .background(background)
             .border(BorderWidth, PanelBorder, PanelShape)
-            .clickable(onClick = onClick),
+            .clickableWithSound(onClick),
         contentAlignment = Alignment.Center,
     ) {
         MenuIcon(icon, TextPrimary, Modifier.size(20.dp), assetsReady)

@@ -6,7 +6,6 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
@@ -424,7 +423,7 @@ private fun ChoiceButton(
             .clip(ButtonShape)
             .background(ChoiceBackground)
             .border(if (selected) 2.dp else 1.dp, if (selected) Brand else PanelBorder, ButtonShape)
-            .clickable(onClick = onClick),
+            .clickableWithSound(onClick),
         horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -438,7 +437,7 @@ private fun StyleCard(label: String, selected: Boolean, rounded: Boolean, onClic
     Box(
         Modifier.size(198.dp, 155.dp).clip(ButtonShape).background(ChoiceBackground)
             .border(if (selected) 2.dp else 1.dp, if (selected) Brand else PanelBorder, ButtonShape)
-            .clickable(onClick = onClick),
+            .clickableWithSound(onClick),
     ) {
         UiPreview(Modifier.offset(13.dp, 12.dp), rounded)
         OnboardingText(label, 14, Modifier.align(Alignment.BottomCenter).padding(bottom = 9.dp), TextPrimary, FontWeight.Medium)
@@ -471,7 +470,7 @@ private fun HudCard(label: String, selected: Boolean, rounded: Boolean, onClick:
     Box(
         Modifier.size(198.dp, 94.dp).clip(ButtonShape).background(ChoiceBackground)
             .border(if (selected) 2.dp else 1.dp, if (selected) Brand else PanelBorder, ButtonShape)
-            .clickable(onClick = onClick),
+            .clickableWithSound(onClick),
     ) {
         Box(
             Modifier.offset(31.5.dp, 16.dp).size(134.dp, 38.dp)
