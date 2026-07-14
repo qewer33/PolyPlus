@@ -37,12 +37,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.toComposeImageBitmap
-import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.skiaCanvas
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
@@ -51,6 +49,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import org.jetbrains.skia.Matrix33
 import org.jetbrains.skia.Image as SkiaImage
 import org.polyfrost.oneconfig.internal.ui.components.Icon
 import org.polyfrost.oneconfig.internal.ui.components.LocalUiOversample
@@ -60,9 +59,7 @@ import org.polyfrost.oneconfig.internal.ui.themes.Theme
 import org.polyfrost.polyplus.client.PolyPlusConfig
 import org.polyfrost.polyplus.client.PolyPlusClient
 import org.polyfrost.polyplus.client.features.OnboardingFeatures
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.coroutineScope
+import org.polyfrost.polyplus.client.gui.preview.UnityMotionBlur
 import kotlin.math.roundToInt
 
 class PolyPlusOnboardingScreen : ComposeScreen(RenderMode.CONTINUOUS) {
@@ -510,9 +507,8 @@ private fun OnboardingIcon(path: String, color: Color, modifier: Modifier) = Ico
 
 @Composable
 private fun MotionBlurPreview(strength: Int, modifier: Modifier = Modifier) {
-    val bitmap = remember { loadOnboardingRaster(ONBOARDING_ASSETS + "motion-test.png") }
-    var pan by remember { mutableStateOf(Offset.Zero) }
-    var velocity by remember { mutableStateOf(Offset.Zero) }
+    val image = remember { loadOnboardingImage(ONBOARDING_ASSETS + "motion-test.png") }
+    val motion = UnityMotionBlur.maxSmear(strength)
     val shape = RoundedCornerShape(6.dp)
 
     Box(
@@ -521,85 +517,39 @@ private fun MotionBlurPreview(strength: Int, modifier: Modifier = Modifier) {
             .background(Color(0xFF273137))
             .border(1.dp, Color.White, shape),
     ) {
-        if (bitmap != null) {
-            Canvas(
-                Modifier
-                    .fillMaxSize()
-                    .pointerInput(strength) {
-                        coroutineScope {
-                            var previous: Offset? = null
-                            var generation = 0
-                            awaitPointerEventScope {
-                                while (true) {
-                                    val event = awaitPointerEvent()
-                                    val position = event.changes.firstOrNull()?.position ?: continue
-                                    val last = previous
-                                    previous = position
-                                    pan = Offset(
-                                        ((position.x / size.width) - 0.5f) * -12f,
-                                        ((position.y / size.height) - 0.5f) * -8f,
-                                    )
-                                    if (last != null) {
-                                        val scale = strength.coerceIn(0, MOTION_BLUR_MAX) / MOTION_BLUR_MAX.toFloat()
-                                        velocity = Offset(
-                                            (position.x - last.x).coerceIn(-32f, 32f) * scale,
-                                            (position.y - last.y).coerceIn(-24f, 24f) * scale,
-                                        )
-                                        val current = ++generation
-                                        launch {
-                                            delay(70L)
-                                            if (current == generation) velocity = Offset.Zero
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    },
-            ) {
+        if (image != null) {
+            Canvas(Modifier.fillMaxSize()) {
                 val overscan = 1.12f
                 val destinationWidth = size.width * overscan
                 val destinationHeight = size.height * overscan
                 val destinationRatio = destinationWidth / destinationHeight
-                val sourceRatio = bitmap.width.toFloat() / bitmap.height.toFloat()
+                val sourceRatio = image.width.toFloat() / image.height.toFloat()
                 val sourceWidth: Int
                 val sourceHeight: Int
                 if (sourceRatio > destinationRatio) {
-                    sourceHeight = bitmap.height
+                    sourceHeight = image.height
                     sourceWidth = (sourceHeight * destinationRatio).roundToInt()
                 } else {
-                    sourceWidth = bitmap.width
+                    sourceWidth = image.width
                     sourceHeight = (sourceWidth / destinationRatio).roundToInt()
                 }
-                val sourceOffset = androidx.compose.ui.unit.IntOffset(
-                    (bitmap.width - sourceWidth) / 2,
-                    (bitmap.height - sourceHeight) / 2,
-                )
-                val samples = if (strength == 0 || velocity == Offset.Zero) 1 else strength.coerceIn(2, MOTION_BLUR_MAX)
-                repeat(samples) { index ->
-                    val samplePosition = if (samples == 1) 0f else index.toFloat() / (samples - 1) - 0.5f
-                    val sampleOffset = velocity * samplePosition
-                    drawImage(
-                        image = bitmap,
-                        srcOffset = sourceOffset,
-                        srcSize = androidx.compose.ui.unit.IntSize(sourceWidth, sourceHeight),
-                        dstOffset = androidx.compose.ui.unit.IntOffset(
-                            ((size.width - destinationWidth) / 2f + pan.x + sampleOffset.x).roundToInt(),
-                            ((size.height - destinationHeight) / 2f + pan.y + sampleOffset.y).roundToInt(),
-                        ),
-                        dstSize = androidx.compose.ui.unit.IntSize(destinationWidth.roundToInt(), destinationHeight.roundToInt()),
-                        alpha = 1f / samples,
-                        blendMode = if (index == 0) BlendMode.SrcOver else BlendMode.Plus,
-                    )
+                val localMatrix = Matrix33
+                    .makeTranslate((size.width - destinationWidth) / 2f, (size.height - destinationHeight) / 2f)
+                    .makeConcat(Matrix33.makeScale(destinationWidth / sourceWidth, destinationHeight / sourceHeight))
+                    .makeConcat(Matrix33.makeTranslate(-(image.width - sourceWidth) / 2f, -(image.height - sourceHeight) / 2f))
+                drawIntoCanvas {
+                    UnityMotionBlur.draw(it.skiaCanvas, image, localMatrix, size.width, size.height, motion)
                 }
             }
         }
-        OnboardingText("Move your mouse here to test!", 13, Modifier.align(Alignment.Center), Color(0xBFFFFFFF), FontWeight.Light)
+        val caption = if (strength == 0) "Motion blur off" else "Maximum blur at this strength"
+        OnboardingText(caption, 13, Modifier.align(Alignment.Center), Color(0xBFFFFFFF), FontWeight.Light)
     }
 }
 
-private fun loadOnboardingRaster(path: String): ImageBitmap? = runCatching {
+private fun loadOnboardingImage(path: String): SkiaImage? = runCatching {
     val bytes = PolyPlusOnboardingScreen::class.java.getResourceAsStream("/$path")!!.use { it.readBytes() }
-    SkiaImage.makeFromEncoded(bytes).toComposeImageBitmap()
+    SkiaImage.makeFromEncoded(bytes)
 }.getOrNull()
 
 private data class HudSelections(
