@@ -5,6 +5,7 @@ import org.apache.logging.log4j.LogManager
 import org.polyfrost.oneconfig.api.config.v1.Config
 import org.polyfrost.oneconfig.api.config.v1.Property.Display
 import org.polyfrost.oneconfig.api.config.v1.annotations.Dropdown
+import org.polyfrost.oneconfig.api.config.v1.annotations.Include
 import org.polyfrost.oneconfig.api.config.v1.annotations.Slider
 import org.polyfrost.oneconfig.api.config.v1.annotations.Switch
 import org.polyfrost.polyplus.BackendUrl
@@ -21,6 +22,51 @@ private const val MAX_CUSTOM_MAIN_MENU_FPS_LIMIT = 260f
 object PolyPlusConfig : Config("${PolyPlusConstants.ID}.json", PolyPlusConstants.NAME, Category.OTHER) {
     @Transient
     private val LOGGER = LogManager.getLogger()
+
+    @JvmStatic @Include
+    var onboardingCompleted = false
+
+    @JvmStatic @Include
+    var onboardingFeaturesApplied = false
+
+    @JvmStatic @Include
+    var onboardingPolyBlurApplied = false
+
+    @JvmStatic @Include
+    var onboardingEvergreenApplied = false
+
+    @JvmStatic @Include
+    var onboardingLightTheme = false
+
+    @JvmStatic @Include
+    var onboardingUiStyle = 0
+
+    @JvmStatic @Include
+    var onboardingHudStyle = 0
+
+    @JvmStatic @Include
+    var onboardingToggleSprint = true
+
+    @JvmStatic @Include
+    var onboardingHudFps = true
+
+    @JvmStatic @Include
+    var onboardingHudCps = false
+
+    @JvmStatic @Include
+    var onboardingHudPing = true
+
+    @JvmStatic @Include
+    var onboardingHudTime = true
+
+    @JvmStatic @Include
+    var onboardingHudCoords = false
+
+    @JvmStatic @Include
+    var onboardingHudDirection = false
+
+    @JvmStatic @Include
+    var onboardingMotionBlur = 5
 
     @JvmStatic
     @Switch(

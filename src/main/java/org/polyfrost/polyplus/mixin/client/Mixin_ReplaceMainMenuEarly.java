@@ -5,6 +5,7 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.TitleScreen;
 import org.polyfrost.polyplus.client.PolyPlusConfig;
 import org.polyfrost.polyplus.client.gui.PolyPlusMainMenuScreen;
+import org.polyfrost.polyplus.client.gui.PolyPlusOnboardingScreen;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -32,12 +33,12 @@ public class Mixin_ReplaceMainMenuEarly {
         }
 
         //? if >= 26.2 {
-        /*if (!(mc.gui.screen() instanceof PolyPlusMainMenuScreen)) {
-            mc.gui.setScreen(new PolyPlusMainMenuScreen());
+        /*if (!(mc.gui.screen() instanceof PolyPlusMainMenuScreen) && !(mc.gui.screen() instanceof PolyPlusOnboardingScreen)) {
+            mc.gui.setScreen(PolyPlusConfig.getOnboardingCompleted() ? new PolyPlusMainMenuScreen() : new PolyPlusOnboardingScreen());
         }
         *///?} else {
-        if (!(mc.screen instanceof PolyPlusMainMenuScreen)) {
-            mc.setScreen(new PolyPlusMainMenuScreen());
+        if (!(mc.screen instanceof PolyPlusMainMenuScreen) && !(mc.screen instanceof PolyPlusOnboardingScreen)) {
+            mc.setScreen(PolyPlusConfig.getOnboardingCompleted() ? new PolyPlusMainMenuScreen() : new PolyPlusOnboardingScreen());
         }
         //?}
         ci.cancel();
