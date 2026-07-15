@@ -81,9 +81,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import org.jetbrains.skia.Image as SkiaImage
 import org.polyfrost.oneconfig.internal.ui.components.Icon
 import org.polyfrost.oneconfig.internal.ui.components.LocalUiOversample
@@ -99,7 +101,6 @@ import org.polyfrost.polyplus.client.gui.preview.PlayerPreview
 import org.polyfrost.polyplus.client.gui.preview.PlayerPreviewSource
 import org.polyfrost.polyplus.client.utils.ClientPlatform
 import java.util.Collections
-import java.util.IdentityHashMap
 import java.util.concurrent.ConcurrentHashMap
 
 class PolyPlusMainMenuScreen : ComposeScreen(RenderMode.CONTINUOUS) {
@@ -177,7 +178,7 @@ class PolyPlusMainMenuScreen : ComposeScreen(RenderMode.CONTINUOUS) {
         var pingTick by remember { mutableStateOf(0) }
         LaunchedEffect(servers) {
             if (servers.isEmpty()) return@LaunchedEffect
-            MainMenuServerPings.start(servers)
+            MainMenuServerPings.start(this, servers)
             while (true) {
                 MainMenuServerPings.tick()
                 pingTick++
@@ -214,13 +215,7 @@ class PolyPlusMainMenuScreen : ComposeScreen(RenderMode.CONTINUOUS) {
                         /*mc.setScreen(net.minecraft.client.gui.screens.options.OptionsScreen(this, mc.options))
                         *///?}
                     },
-                    mods = {
-                        //? if >= 26.2 {
-                        /*mc.gui.setScreen(org.polyfrost.oneconfig.internal.ui.compose.impls.OneConfigUIScreen())
-                        *///?} else {
-                        mc.setScreen(org.polyfrost.oneconfig.internal.ui.compose.impls.OneConfigUIScreen())
-                        //?}
-                    },
+                    mods = { PolyPlusOneConfigIntegration.openMods() },
                     fullscreen = { mc.window.toggleFullScreen() },
                     quit = { mc.stop() },
                     connect = { server -> connectTo(mc, server) },
@@ -240,18 +235,22 @@ class PolyPlusMainMenuScreen : ComposeScreen(RenderMode.CONTINUOUS) {
 
 private object MainMenuServerPings {
     private val pinger = net.minecraft.client.multiplayer.ServerStatusPinger()
-    private val started = Collections.newSetFromMap(IdentityHashMap<net.minecraft.client.multiplayer.ServerData, Boolean>())
+    private val started = Collections.newSetFromMap(ConcurrentHashMap<net.minecraft.client.multiplayer.ServerData, Boolean>())
 
-    @Synchronized
-    fun start(servers: List<net.minecraft.client.multiplayer.ServerData>) {
+    fun start(scope: CoroutineScope, servers: List<net.minecraft.client.multiplayer.ServerData>) {
         servers.forEach { data ->
             if (started.add(data)) {
-                //? if >= 1.21.11 {
-                val elg = net.minecraft.server.network.EventLoopGroupHolder.remote(false)
-                runCatching { pinger.pingServer(data, Runnable {}, Runnable {}, elg) }
-                //?} else {
-                /*runCatching { pinger.pingServer(data, Runnable {}, Runnable {}) }
-                *///?}
+                scope.launch(Dispatchers.IO) {
+                    val ok = runCatching {
+                        //? if >= 1.21.11 {
+                        val elg = net.minecraft.server.network.EventLoopGroupHolder.remote(false)
+                        pinger.pingServer(data, Runnable {}, Runnable {}, elg)
+                        //?} else {
+                        /*pinger.pingServer(data, Runnable {}, Runnable {})
+                        *///?}
+                    }.isSuccess
+                    if (!ok) started.remove(data)
+                }
             }
         }
     }
@@ -787,7 +786,7 @@ private fun WorldRow(
             .clip(PanelShape)
             .background(if (selected) Accent.asSelectedBackground else PanelBackground)
             .border(BorderWidth, if (selected) Accent else LocalTheme.current.borderColor, PanelShape)
-            .clickable(onClick = onClick)
+            .clickableWithSound(onClick)
             .padding(horizontal = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -836,7 +835,7 @@ private fun GameModeDropdown(
                 .clip(PanelShape)
                 .background(PanelBackground)
                 .border(BorderWidth, LocalTheme.current.borderColor, PanelShape)
-                .clickable { expanded = !expanded }
+                .clickableWithSound { expanded = !expanded }
                 .padding(horizontal = 14.dp),
             contentAlignment = Alignment.Center,
         ) {
@@ -855,7 +854,7 @@ private fun GameModeDropdown(
                             .clip(PanelShape)
                             .background(if (mode == selected) Accent.asSelectedBackground else PanelBackground)
                             .border(BorderWidth, if (mode == selected) Accent else LocalTheme.current.borderColor, PanelShape)
-                            .clickable { onSelect(mode); expanded = false }
+                            .clickableWithSound { onSelect(mode); expanded = false }
                             .padding(horizontal = 14.dp),
                         contentAlignment = Alignment.CenterStart,
                     ) {
@@ -876,7 +875,7 @@ private fun CheatsToggle(checked: Boolean, onToggle: () -> Unit) {
             .clip(PanelShape)
             .background(PanelBackground)
             .border(BorderWidth, LocalTheme.current.borderColor, PanelShape)
-            .clickable(onClick = onToggle)
+            .clickableWithSound(onToggle)
             .padding(horizontal = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -1003,7 +1002,7 @@ private fun PillButton(label: String, icon: String, modifier: Modifier = Modifie
             .clip(PanelShape)
             .background(PanelBackground)
             .border(BorderWidth, borderBrush, PanelShape)
-            .clickable(onClick = onClick)
+            .clickableWithSound(onClick)
             .padding(horizontal = 18.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
         verticalAlignment = Alignment.CenterVertically,
@@ -1022,7 +1021,7 @@ private fun DropdownPill(label: String, leadingIcon: String, expanded: Boolean, 
             .clip(PanelShape)
             .background(PanelBackground)
             .border(BorderWidth, PanelBorderBrush, PanelShape)
-            .clickable(onClick = onClick)
+            .clickableWithSound(onClick)
             .padding(horizontal = 12.dp),
         contentAlignment = Alignment.Center,
     ) {
@@ -1054,7 +1053,7 @@ private fun ServerRow(
             .clip(PanelShape)
             .background(PanelBackground)
             .border(BorderWidth, PanelBorderBrush, PanelShape)
-            .clickable(onClick = onClick)
+            .clickableWithSound(onClick)
             .padding(horizontal = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(14.dp),
@@ -1120,7 +1119,7 @@ private fun IconButton(
             .clip(PanelShape)
             .background(background)
             .border(BorderWidth, PanelBorderBrush, PanelShape)
-            .clickable(onClick = onClick),
+            .clickableWithSound(onClick),
         contentAlignment = Alignment.Center,
     ) {
         MenuIcon(icon, TextPrimary, Modifier.size(20.dp), assetsReady)

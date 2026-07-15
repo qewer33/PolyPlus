@@ -74,7 +74,7 @@ import org.polyfrost.oneconfig.internal.ui.components.Icon
 import org.polyfrost.oneconfig.internal.ui.compose.impls.OneConfigUIScreen
 import org.polyfrost.oneconfig.internal.ui.navigation.NavigationGroup
 import org.polyfrost.oneconfig.internal.ui.navigation.NavigationRoute
-import org.polyfrost.oneconfig.internal.ui.shell.LocalNavController
+import org.polyfrost.oneconfig.internal.ui.navigation.graph.ModsGraph
 import org.polyfrost.oneconfig.internal.ui.themes.Accent
 import org.polyfrost.oneconfig.internal.ui.themes.LocalTheme
 import org.polyfrost.polyplus.client.PolyPlusClient
@@ -132,29 +132,30 @@ object PolyPlusOneConfigIntegration {
         builder.polyPlusCosmeticsGraph()
     }
 
+    @Volatile
+    private var pendingOpeningRoute: Any? = null
+
     @JvmStatic
-    fun openCosmetics() {
+    fun consumePendingOpeningRoute(): Any? {
+        val route = pendingOpeningRoute
+        pendingOpeningRoute = null
+        return route
+    }
+
+    @JvmStatic
+    fun openCosmetics() = openOneConfig(PolyPlusCosmeticsRoute)
+
+    @JvmStatic
+    fun openMods() = openOneConfig(ModsGraph)
+
+    private fun openOneConfig(route: Any) {
+        pendingOpeningRoute = route
         val mc = net.minecraft.client.Minecraft.getInstance()
         //? if >= 26.2 {
         /*mc.gui.setScreen(OneConfigUIScreen())
         *///?} else {
         mc.setScreen(OneConfigUIScreen())
         //?}
-        Thread({
-            var attempts = 0
-            while (attempts++ < 600) {
-                val ready = LocalNavController.isReady &&
-                    runCatching { LocalNavController.current.graph; true }.getOrDefault(false)
-                if (ready) {
-                    mc.execute { runCatching { LocalNavController.wrapper.navigate(PolyPlusCosmeticsRoute) } }
-                    return@Thread
-                }
-                Thread.sleep(16L)
-            }
-        }, "polyplus-open-cosmetics").apply {
-            isDaemon = true
-            start()
-        }
     }
 }
 
